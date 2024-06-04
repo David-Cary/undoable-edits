@@ -50,7 +50,10 @@ export class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
     if (property === PROXY_TARGET) {
       return target
     }
-    return Reflect.get(target, property)
+    const value = Reflect.get(target, property)
+    return typeof value === 'function'
+      ? value.bind(target)
+      : value
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "undoable-edits",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Supports undo/redo for object property changes",
   "main": "lib/index.js",
   "files": [
