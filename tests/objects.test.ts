@@ -154,9 +154,9 @@ describe("UndoableRecordHandler", () => {
       }
     ])
   })
+  const deepHandler = new UndoableRecordHandler(captureAction, true)
   test("if deep should report nested changes", () => {
     capturedActions.length = 0
-    const deepHandler = new UndoableRecordHandler(captureAction, true)
     const proxy = new Proxy(
       {
         digits: [1, 2]
@@ -170,6 +170,55 @@ describe("UndoableRecordHandler", () => {
         index: 0,
         previousValue: 1,
         nextValue: 0
+      }
+    ])
+  })
+  test("deep handlers should report date changes", () => {
+    capturedActions.length = 0
+    const proxy = new Proxy(
+      {
+        date: new Date()
+      },
+      deepHandler
+    )
+    proxy.date.setFullYear(1999)
+    expect(proxy.date.getFullYear()).toBe(1999)
+    expect(capturedActions).toMatchObject([
+      {
+        values: [1999]
+      }
+    ])
+  })
+  test("deep handlers should report set changes", () => {
+    capturedActions.length = 0
+    const proxy = new Proxy(
+      {
+        values: new Set<number>()
+      },
+      deepHandler
+    )
+    proxy.values.add(1)
+    expect(proxy.values.has(1)).toBe(true)
+    expect(capturedActions).toMatchObject([
+      {
+        value: 1
+      }
+    ])
+  })
+  test("deep handlers should report map changes", () => {
+    capturedActions.length = 0
+    const proxy = new Proxy(
+      {
+        values: new Map<string, number>()
+      },
+      deepHandler
+    )
+    proxy.values.set('x', 1)
+    expect(proxy.values.get('x')).toBe(1)
+    expect(capturedActions).toMatchObject([
+      {
+        key: 'x',
+        nextValue: 1
       }
     ])
   })

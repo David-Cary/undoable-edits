@@ -3,6 +3,19 @@ export type ValidKey = string | number | symbol;
 export declare const PROXY_TARGET: unique symbol;
 export declare const APPLY_UNDOABLE_ACTION: unique symbol;
 /**
+ * Generates a ProxyHandler for a particular object.
+ * @interface
+ */
+export interface ConditionalProxyHandlerFactory {
+    /**
+     * Tries to find the proxy for a given object.
+     * @function
+     * @param {object} value - object to be evaluated
+     * @returns {ProxyHandler<object> | undefined}
+     */
+    getHandlerFor: (value: object) => ProxyHandler<object> | undefined;
+}
+/**
  * Adds special access properties for undoable actions to a proxy handler.
  * @template T
  * @class
@@ -11,11 +24,13 @@ export declare const APPLY_UNDOABLE_ACTION: unique symbol;
  */
 export declare class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
     readonly onChange?: UndoableActionCallback;
-    constructor(onChange?: UndoableActionCallback);
+    propertyHandlerFactory?: ConditionalProxyHandlerFactory;
+    constructor(onChange?: UndoableActionCallback, propertyHandlerFactory?: ConditionalProxyHandlerFactory);
     /**
      * Applies the provided action's effects and passed that action to our onChange callback.
      * @function
      * @param {UndoableAction} change - action to be executed
+     * @returns {boolean}
      */
     applyChange(change: UndoableAction): boolean;
     get(target: T, property: ValidKey): any;
@@ -40,3 +55,27 @@ export type UndoableProxy<T extends object> = T & {
  * @returns {UndoableProxy<T>}
  */
 export declare function createUndoableProxy<T extends object>(source: T, handler: UndoableProxyHandler<T>): UndoableProxy<T>;
+/**
+ * Associates a class with a particular value.
+ * @template T
+ * @interface
+ * @property {() => void} class - class definition passed to "new" operator
+ * @property {T} value - value associated with the class
+ */
+export interface ClassValue<T = any> {
+    class: new () => any;
+    value: T;
+}
+/**
+ * Gets proxy handlers by what the target object is an instance of.
+ * @class
+ * @extends UndoableProxyHandler<UntypedRecord>
+ * @property {Array<ClassValue<ProxyHandler<object>>>} classes - list of handlers by class, in descending priority order
+ * @property {ProxyHandler<object>} classes - handler to use if object doesn't match the listed classes
+ */
+export declare class ClassedProxyHandlerFactory implements ConditionalProxyHandlerFactory {
+    classes: Array<ClassValue<ProxyHandler<object>>>;
+    defaultHandler?: ProxyHandler<object>;
+    constructor(classes?: Array<ClassValue<ProxyHandler<object>>>, defaultHandler?: ProxyHandler<object>);
+    getHandlerFor(value: object): ProxyHandler<object> | undefined;
+}

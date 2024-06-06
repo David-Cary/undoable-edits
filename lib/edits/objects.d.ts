@@ -68,13 +68,9 @@ export type UntypedRecord = Record<ValidKey, any>;
  * @class
  * @extends UndoableProxyHandler<UntypedRecord>
  * @property {boolean} deep - if true, any object property value will be wrapped in a proxy
- * @property {UndoableProxyHandler<any[]>} arrayHandler - handler to be applied to arrays when making a deep proxy
  */
 export declare class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
-    readonly deep: boolean;
-    arrayHandler: UndoableProxyHandler<any[]>;
-    constructor(onChange?: UndoableActionCallback, deep?: boolean, arrayHandler?: UndoableProxyHandler<any[]>);
+    constructor(onChange?: UndoableActionCallback, deep?: boolean);
     deleteProperty(target: UntypedRecord, property: string): boolean;
-    get(target: UntypedRecord, property: ValidKey): any;
     set(target: UntypedRecord, property: ValidKey, value: any): boolean;
 }

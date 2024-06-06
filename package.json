@@ -1,6 +1,6 @@
 {
   "name": "undoable-edits",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Supports undo/redo for object property changes",
   "main": "lib/index.js",
   "files": [
@@ -11,7 +11,10 @@
     "lint-fix": "eslint --fix --ext .ts src",
     "test": "jest tests",
     "test-arrays": "jest tests/arrays.test.ts",
+    "test-dates": "jest tests/dates.test.ts",
+    "test-maps": "jest tests/maps.test.ts",
     "test-objects": "jest tests/objects.test.ts",
+    "test-sets": "jest tests/sets.test.ts",
     "build": "tsc"
   },
   "keywords": [

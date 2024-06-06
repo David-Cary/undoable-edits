@@ -1,15 +1,10 @@
 import {
-  type UndoableAction,
-  type UndoableActionCallback
+  type UndoableAction
 } from './actions'
 import {
   UndoableProxyHandler,
   type ValidKey
 } from './proxies'
-import {
-  UndoableRecordHandler,
-  type UntypedRecord
-} from './objects'
 
 /**
  * Undoable action for changing an array's length.
@@ -464,23 +459,8 @@ export class UndoableUnshiftItems implements UndoableAction {
  * Proxy handler with undoable action reporting for arrays.
  * @class
  * @extends UndoableProxyHandler<UntypedRecord>
- * @property {boolean} deep - if true, any array elements will be wrapped in a proxy
- * @property {UndoableProxyHandler<any[]>} recordHandler - handler to be applied to records when making a deep proxy
  */
 export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
-  readonly deep: boolean
-  recordHandler: UndoableProxyHandler<UntypedRecord>
-
-  constructor (
-    onChange?: UndoableActionCallback,
-    deep = false,
-    recordHandler?: UndoableProxyHandler<UntypedRecord>
-  ) {
-    super(onChange)
-    this.deep = deep
-    this.recordHandler = recordHandler ?? new UndoableRecordHandler(onChange, deep, this)
-  }
-
   get (
     target: T[],
     property: ValidKey
@@ -551,17 +531,6 @@ export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
             )
             return target.reverse()
           }
-        }
-      }
-    }
-    if (this.deep && typeof property !== 'symbol') {
-      const index = Number(property)
-      if (!isNaN(index)) {
-        const item = target[index]
-        if (typeof item === 'object' && item != null) {
-          return Array.isArray(item)
-            ? new Proxy(item, this)
-            : new Proxy(item, this.recordHandler)
         }
       }
     }

@@ -4,9 +4,13 @@ import {
 } from './actions'
 import {
   UndoableProxyHandler,
+  ClassedProxyHandlerFactory,
   type ValidKey
 } from './proxies'
 import { UndoableArrayHandler } from './arrays'
+import { UndoableDateHandler } from './dates'
+import { UndoableSetHandler } from './sets'
+import { UndoableMapHandler } from './maps'
 
 /**
  * Remove a property from the target object.
@@ -147,20 +151,35 @@ export type UntypedRecord = Record<ValidKey, any>
  * @class
  * @extends UndoableProxyHandler<UntypedRecord>
  * @property {boolean} deep - if true, any object property value will be wrapped in a proxy
- * @property {UndoableProxyHandler<any[]>} arrayHandler - handler to be applied to arrays when making a deep proxy
  */
 export class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
-  readonly deep: boolean
-  arrayHandler: UndoableProxyHandler<any[]>
-
   constructor (
     onChange?: UndoableActionCallback,
-    deep = false,
-    arrayHandler?: UndoableProxyHandler<any[]>
+    deep = false
   ) {
     super(onChange)
-    this.deep = deep
-    this.arrayHandler = arrayHandler ?? new UndoableArrayHandler(onChange, deep, this)
+    if (deep) {
+      const factory = new ClassedProxyHandlerFactory([], this)
+      factory.classes.push(
+        {
+          class: Array,
+          value: new UndoableArrayHandler(onChange, factory)
+        },
+        {
+          class: Date,
+          value: new UndoableDateHandler(onChange)
+        },
+        {
+          class: Map,
+          value: new UndoableMapHandler(onChange, factory)
+        },
+        {
+          class: Set,
+          value: new UndoableSetHandler(onChange, factory)
+        }
+      )
+      this.propertyHandlerFactory = factory
+    }
   }
 
   deleteProperty (
@@ -170,21 +189,6 @@ export class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
     return this.applyChange(
       new UndoableDeleteProperty(target, property)
     )
-  }
-
-  get (
-    target: UntypedRecord,
-    property: ValidKey
-  ): any {
-    if (this.deep) {
-      const value = target[property]
-      if (typeof value === 'object' && value != null) {
-        return Array.isArray(value)
-          ? new Proxy(value, this.arrayHandler)
-          : new Proxy(value, this)
-      }
-    }
-    return super.get(target, property)
   }
 
   set (

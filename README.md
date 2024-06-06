@@ -80,8 +80,7 @@ Note that such proxies can be created by simply creating a new `Proxy` with the 
 For non-array objects, use `UndoableRecordHandler` as the proxy handler.  That takes in the following optional constructor parameters:
  - `onChange`: Each time the object is modified via proxy the resulting undoable action will get passed on to this function.
  - `deep`: If set to true attempting to access an object property of the target will result in an undoable proxy of said object.
- - `arrayHandler`: This lets you specify the handler for any array proxies created as part of the above deep property access.  If left undefined this will simply be an `UndoableArrayHandler` with the same `onChange` and `deep` properties and a reference back to this handler.
-
+ 
 You can use the above special proxy properties to rename the proxied object's properties, like so:
 ```
 const proxy = createUndoableProxy({}, new UndoableRecordHandler())
@@ -94,6 +93,12 @@ proxy[APPLY_UNDOABLE_ACTION](
 )
 ```
 
-### Array Proxies
+Note, prior to 1.1.0 the constructor accepted an `arrayHandler` property.  That has since been replaced by a `propertyHandlerFactory` that gets automatically created if `deep` is set to true.
 
-For arrays, use `UndoableArrayHandler` as the proxy handler.  This works much like the above `UndoableRecordHandler`, save that `arrayHandler` is replaced by `recordHandler`.  Said record handler is used much like the array handler.  It just gets applied to non-array objects instead of arrays.
+By default the property handler factory is an instance of `ClassedProxyHandlerFactory` with entries for arrays, dates, maps, and sets.  Should you want support for additional object types you can add those to that factory's `classes` list.
+
+### Other Proxies
+
+The library currently provided proxy handlers for arrays (UndoableArrayHandler), dates (UndoableDateHandler), maps (UndoableMapHandler), and sets (UndoableSetHandler).  Each of these work much like the above `UndoableRecordHandler`, save that they take an optional property handler factory in place of the `deep` parameter.
+
+By default a record handler set to deep proxying will contain an instance of each of the above handlers to deal with the associated value types.

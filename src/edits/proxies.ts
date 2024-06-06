@@ -10,6 +10,20 @@ export const PROXY_TARGET = Symbol('Proxy_target')
 export const APPLY_UNDOABLE_ACTION = Symbol('applyUndoableAction')
 
 /**
+ * Generates a ProxyHandler for a particular object.
+ * @interface
+ */
+export interface ConditionalProxyHandlerFactory {
+  /**
+   * Tries to find the proxy for a given object.
+   * @function
+   * @param {object} value - object to be evaluated
+   * @returns {ProxyHandler<object> | undefined}
+   */
+  getHandlerFor: (value: object) => ProxyHandler<object> | undefined
+}
+
+/**
  * Adds special access properties for undoable actions to a proxy handler.
  * @template T
  * @class
@@ -18,17 +32,21 @@ export const APPLY_UNDOABLE_ACTION = Symbol('applyUndoableAction')
  */
 export class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
   readonly onChange?: UndoableActionCallback
+  propertyHandlerFactory?: ConditionalProxyHandlerFactory
 
   constructor (
-    onChange?: UndoableActionCallback
+    onChange?: UndoableActionCallback,
+    propertyHandlerFactory?: ConditionalProxyHandlerFactory
   ) {
     this.onChange = onChange
+    this.propertyHandlerFactory = propertyHandlerFactory
   }
 
   /**
    * Applies the provided action's effects and passed that action to our onChange callback.
    * @function
    * @param {UndoableAction} change - action to be executed
+   * @returns {boolean}
    */
   applyChange (
     change: UndoableAction
@@ -51,9 +69,23 @@ export class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
       return target
     }
     const value = Reflect.get(target, property)
-    return typeof value === 'function'
-      ? value.bind(target)
-      : value
+    switch (typeof value) {
+      case 'function': {
+        return value.bind(target)
+      }
+      case 'object': {
+        if (value != null) {
+          if (this.propertyHandlerFactory != null) {
+            const handler = this.propertyHandlerFactory.getHandlerFor(value)
+            if (handler != null) {
+              return new Proxy(value, handler)
+            }
+          }
+        }
+        break
+      }
+    }
+    return value
   }
 }
 
@@ -82,4 +114,47 @@ export function createUndoableProxy<T extends object> (
   handler: UndoableProxyHandler<T>
 ): UndoableProxy<T> {
   return new Proxy(source, handler) as UndoableProxy<T>
+}
+
+/**
+ * Associates a class with a particular value.
+ * @template T
+ * @interface
+ * @property {() => void} class - class definition passed to "new" operator
+ * @property {T} value - value associated with the class
+ */
+export interface ClassValue<T = any> {
+  class: new () => any
+  value: T
+}
+
+/**
+ * Gets proxy handlers by what the target object is an instance of.
+ * @class
+ * @extends UndoableProxyHandler<UntypedRecord>
+ * @property {Array<ClassValue<ProxyHandler<object>>>} classes - list of handlers by class, in descending priority order
+ * @property {ProxyHandler<object>} classes - handler to use if object doesn't match the listed classes
+ */
+export class ClassedProxyHandlerFactory implements ConditionalProxyHandlerFactory {
+  classes: Array<ClassValue<ProxyHandler<object>>>
+  defaultHandler?: ProxyHandler<object>
+
+  constructor (
+    classes: Array<ClassValue<ProxyHandler<object>>> = [],
+    defaultHandler?: ProxyHandler<object>
+  ) {
+    this.classes = classes
+    this.defaultHandler = defaultHandler
+  }
+
+  getHandlerFor (
+    value: object
+  ): ProxyHandler<object> | undefined {
+    for (const entry of this.classes) {
+      if (value instanceof entry.class) {
+        return entry.value
+      }
+    }
+    return this.defaultHandler
+  }
 }

@@ -1,6 +1,5 @@
-import { type UndoableAction, type UndoableActionCallback } from './actions';
+import { type UndoableAction } from './actions';
 import { UndoableProxyHandler, type ValidKey } from './proxies';
-import { type UntypedRecord } from './objects';
 /**
  * Undoable action for changing an array's length.
  * @class
@@ -218,13 +217,8 @@ export declare class UndoableUnshiftItems implements UndoableAction {
  * Proxy handler with undoable action reporting for arrays.
  * @class
  * @extends UndoableProxyHandler<UntypedRecord>
- * @property {boolean} deep - if true, any array elements will be wrapped in a proxy
- * @property {UndoableProxyHandler<any[]>} recordHandler - handler to be applied to records when making a deep proxy
  */
 export declare class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
-    readonly deep: boolean;
-    recordHandler: UndoableProxyHandler<UntypedRecord>;
-    constructor(onChange?: UndoableActionCallback, deep?: boolean, recordHandler?: UndoableProxyHandler<UntypedRecord>);
     get(target: T[], property: ValidKey): any;
     set(target: T[], property: ValidKey, value: any): boolean;
 }

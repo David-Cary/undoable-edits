@@ -473,21 +473,4 @@ describe("UndoableRecordHandler", () => {
     capturedActions[0]?.undo()
     expect(proxy).toEqual([1])
   })
-  test("if deep should report nested changes", () => {
-    capturedActions.length = 0
-    const deepHandler = new UndoableArrayHandler(captureAction, true)
-    const proxy = new Proxy(
-      [{x :0, y: 0}],
-      deepHandler
-    )
-    proxy[0].x = 1
-    expect(proxy[0].x).toBe(1)
-    expect(capturedActions).toMatchObject([
-      {
-        key: 'x',
-        previousValue: 0,
-        nextValue: 1
-      }
-    ])
-  })
 })
