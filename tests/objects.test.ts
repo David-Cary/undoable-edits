@@ -138,6 +138,7 @@ describe("UndoableRecordHandler", () => {
   test("should allow for property rename via symbol", () => {
     coordProxy.x = 1
     capturedActions.length = 0
+    expect(APPLY_UNDOABLE_ACTION in coordProxy).toBe(true)
     coordProxy[APPLY_UNDOABLE_ACTION](
       new UndoableRenameProperty(
         coordProxy[PROXY_TARGET],

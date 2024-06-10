@@ -87,6 +87,19 @@ export class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
     }
     return value
   }
+  
+  has (
+    target: T,
+    property: ValidKey
+  ): boolean {
+    if (
+      property === APPLY_UNDOABLE_ACTION ||
+      property === PROXY_TARGET
+    ) {
+      return true
+    }
+    return Reflect.has(target, property)
+  }
 }
 
 /**
