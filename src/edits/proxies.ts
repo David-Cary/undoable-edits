@@ -87,7 +87,7 @@ export class UndoableProxyHandler<T extends object> implements ProxyHandler<T> {
     }
     return value
   }
-  
+
   has (
     target: T,
     property: ValidKey

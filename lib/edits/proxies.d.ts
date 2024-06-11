@@ -34,6 +34,7 @@ export declare class UndoableProxyHandler<T extends object> implements ProxyHand
      */
     applyChange(change: UndoableAction): boolean;
     get(target: T, property: ValidKey): any;
+    has(target: T, property: ValidKey): boolean;
 }
 /**
  * Adds special access properties for undoable actions to a proxy.
