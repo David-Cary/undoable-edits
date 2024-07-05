@@ -57,6 +57,22 @@ export type UndoableProxy<T extends object> = T & {
  */
 export declare function createUndoableProxy<T extends object>(source: T, handler: UndoableProxyHandler<T>): UndoableProxy<T>;
 /**
+ * Accesses the proxy target if provided an UndoableProxy.
+ * @template T
+ * @function
+ * @param {T} source - object be evaluated
+ * @returns {T}
+ */
+export declare function unwrapProxyTarget<T extends object>(source: T): T;
+/**
+ * Tries to apply an UndoableAction through the callback of the provided UndoableProxy.
+ * @template T
+ * @function
+ * @param {T} context - source of the target callback
+ * @param {UndoableAction} action - action to be applied
+ */
+export declare function applyUndoableActionVia<T extends object>(context: T, action: UndoableAction): void;
+/**
  * Associates a class with a particular value.
  * @template T
  * @interface

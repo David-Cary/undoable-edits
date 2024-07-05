@@ -13,6 +13,54 @@ import { UndoableSetHandler } from './sets'
 import { UndoableMapHandler } from './maps'
 
 /**
+ * Duplicates the property of a source object, deleting if said property is absent.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object property should be drawn from
+ * @property {ValidKey} key - property to be modified
+ * @property {any} previousValue - cached value of the removed property
+ * @property {boolean} priorProperty - cached check for if the property already existed
+ */
+export class UndoableCopyPropertyFrom implements UndoableAction {
+  readonly target: Record<ValidKey, any>
+  readonly source: Record<ValidKey, any>
+  readonly key: ValidKey
+  readonly previousValue: any
+  readonly priorProperty: boolean
+
+  constructor (
+    target: Record<ValidKey, any>,
+    key: ValidKey,
+    source: Record<ValidKey, any>
+  ) {
+    this.target = target
+    this.source = source
+    this.key = key
+    this.previousValue = target[key]
+    this.priorProperty = key in target
+  }
+
+  redo (): void {
+    if (this.key in this.source) {
+      this.target[this.key] = this.source[this.key]
+    } else if (this.key in this.target) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.target[this.key]
+    }
+  }
+
+  undo (): void {
+    if (!this.priorProperty && this.key in this.target) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.target[this.key]
+    } else {
+      this.target[this.key] = this.previousValue
+    }
+  }
+}
+
+/**
  * Remove a property from the target object.
  * @class
  * @extends UndoableAction

@@ -1,6 +1,26 @@
 import { type UndoableAction, type UndoableActionCallback } from './actions';
 import { UndoableProxyHandler, type ValidKey } from './proxies';
 /**
+ * Sets a specific property value for a given object.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {ValidKey} key - property to be modified
+ * @property {any} previousValue - cached value of the removed property
+ * @property {any} nextValue - value to be assigned
+ * @property {boolean} priorProperty - cached check for if the property already existed
+ */
+export declare class UndoableCopyPropertyFrom implements UndoableAction {
+    readonly target: Record<ValidKey, any>;
+    readonly source: Record<ValidKey, any>;
+    readonly key: ValidKey;
+    readonly previousValue: any;
+    readonly priorProperty: boolean;
+    constructor(target: Record<ValidKey, any>, key: ValidKey, source: Record<ValidKey, any>);
+    redo(): void;
+    undo(): void;
+}
+/**
  * Remove a property from the target object.
  * @class
  * @extends UndoableAction

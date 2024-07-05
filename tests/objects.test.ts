@@ -3,7 +3,10 @@ import {
   UndoableSetProperty,
   UndoableDeleteProperty,
   UndoableRenameProperty,
+  UndoableCopyPropertyFrom,
   UndoableRecordHandler,
+  unwrapProxyTarget,
+  applyUndoableActionVia,
   APPLY_UNDOABLE_ACTION,
   PROXY_TARGET
 } from "../src/index"
@@ -152,6 +155,42 @@ describe("UndoableRecordHandler", () => {
       {
         previousKey: 'x',
         nextKey: 'y'
+      }
+    ])
+  })
+  test("should allow for property copy via utility functions", () => {
+    coordProxy.x = 1
+    capturedActions.length = 0
+    applyUndoableActionVia(
+      coordProxy,
+      new UndoableCopyPropertyFrom(
+        unwrapProxyTarget(coordProxy),
+        'x',
+        { x: 2 }
+      )
+    )
+    expect(coords.x).toBe(2)
+    expect(capturedActions).toMatchObject([
+      {
+        key: 'x'
+      }
+    ])
+  })
+  test("should allow deleting copied property", () => {
+    coordProxy.x = 1
+    capturedActions.length = 0
+    applyUndoableActionVia(
+      coordProxy,
+      new UndoableCopyPropertyFrom(
+        unwrapProxyTarget(coordProxy),
+        'x',
+        {}
+      )
+    )
+    expect(coords).not.toHaveProperty('x')
+    expect(capturedActions).toMatchObject([
+      {
+        key: 'x'
       }
     ])
   })

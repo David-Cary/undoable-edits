@@ -130,6 +130,37 @@ export function createUndoableProxy<T extends object> (
 }
 
 /**
+ * Accesses the proxy target if provided an UndoableProxy.
+ * @template T
+ * @function
+ * @param {T} source - object be evaluated
+ * @returns {T}
+ */
+export function unwrapProxyTarget<T extends object> (
+  source: T
+): T {
+  return PROXY_TARGET in source
+    ? (source as UndoableProxy<T>)[PROXY_TARGET]
+    : source
+}
+
+/**
+ * Tries to apply an UndoableAction through the callback of the provided UndoableProxy.
+ * @template T
+ * @function
+ * @param {T} context - source of the target callback
+ * @param {UndoableAction} action - action to be applied
+ */
+export function applyUndoableActionVia<T extends object> (
+  context: T,
+  action: UndoableAction
+): void {
+  APPLY_UNDOABLE_ACTION in context
+    ? (context as UndoableProxy<T>)[APPLY_UNDOABLE_ACTION](action)
+    : action.redo()
+}
+
+/**
  * Associates a class with a particular value.
  * @template T
  * @interface

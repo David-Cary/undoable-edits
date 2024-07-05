@@ -32,6 +32,8 @@ Deleting properties is similiar, using `UndoableDeleteProperty` with the target 
 
 On the flip side, `UndoableRenameProperty` lets you move a value to a different property and deletes the old property in the process.  The constructor parameters as as per the delete action, with the new property name as the third parameter.  Note that doing so with an existing property will overwrite that value.  Undoing that reverts the value to the original property name, restoring the overwritten value in the process.
 
+Version 1.1.3 adds `UndoableCopyPropertyFrom`, letting you mirror the property of a target object.  This works much like `UndoableSetProperty`, save that it will delete the target property should the source not have said property.
+
 ### Array Actions
 To set an array element, use `UndoableSetItemAt` instead of `UndoableSetProperty`.  This works much like setting a property, save that it takes an index instead of a key and will revert the arrays length when undone.
 
@@ -72,6 +74,19 @@ These proxies do have 2 special properties that can be accessed through symbols 
  - `APPLY_UNDOABLE_ACTION` execute the redo method of the provided action and send it through the proxies reporting function.
 
 These are usually combined by calling apply undoable action and using the proxy target in said action's constructor.
+
+Alternately, as of version 1.1.3 you can use `unwrapProxyTarget` to get the proxy target and `applyUndoableActionVia` to run an action through the proxy's callback, like so:
+```
+applyUndoableActionVia(
+  coordProxy,
+  new UndoableCopyPropertyFrom(
+    unwrapProxyTarget(coordProxy),
+    'x',
+    {}
+  )
+)
+```
+This has the added benefit of being able to handle non-proxy objects.  Trying to unwrap a non-proxy simply returns the object and trying to apply via a non-proxy simply triggers the action's redo function.
 
 Note that such proxies can be created by simply creating a new `Proxy` with the appropriate handler, though typescript won't recognize the above properties unless you cast that proxy as an `UndoableProxy`.  `createUndoableProxy` will do that creation and type casting for you, provided you give it an `UndoableProxyHandler` to work with.
 
