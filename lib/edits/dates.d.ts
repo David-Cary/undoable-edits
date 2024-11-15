@@ -1,5 +1,5 @@
-import { type UndoableAction } from './actions';
-import { UndoableProxyHandler, type ValidKey } from './proxies';
+import { type UndoableAction, type UndoableActionCallback } from './actions';
+import { UndoableProxyHandler, type MaybeArray, type ProxyFactory } from './proxies';
 /**
  * Undoable action for changing a date's day of the month.
  * @class
@@ -246,5 +246,5 @@ export declare class UndoableSetUTCSeconds implements UndoableAction {
  * @extends UndoableProxyHandler<Date>
  */
 export declare class UndoableDateHandler extends UndoableProxyHandler<Date> {
-    get(target: Date, property: ValidKey): any;
+    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean);
 }

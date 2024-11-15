@@ -1,16 +1,12 @@
 import {
-  type UndoableAction,
-  type UndoableActionCallback
+  type UndoableAction
 } from './actions'
 import {
   UndoableProxyHandler,
-  ClassedProxyHandlerFactory,
-  type ValidKey
+  ClassedUndoableProxyFactory,
+  type ValidKey,
+  type UntypedObject
 } from './proxies'
-import { UndoableArrayHandler } from './arrays'
-import { UndoableDateHandler } from './dates'
-import { UndoableSetHandler } from './sets'
-import { UndoableMapHandler } from './maps'
 
 /**
  * Duplicates the property of a source object, deleting if said property is absent.
@@ -189,49 +185,14 @@ export class UndoableRenameProperty implements UndoableAction {
 }
 
 /**
- * Typing for plain old javascript object.
- * @type
- */
-export type UntypedRecord = Record<ValidKey, any>
-
-/**
  * Proxy handler with undoable action reporting for plain old javascript objects.
  * @class
- * @extends UndoableProxyHandler<UntypedRecord>
+ * @extends DefaultedUndoableProxyHandler<UntypedObject>
  * @property {boolean} deep - if true, any object property value will be wrapped in a proxy
  */
-export class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
-  constructor (
-    onChange?: UndoableActionCallback,
-    deep = false
-  ) {
-    super(onChange)
-    if (deep) {
-      const factory = new ClassedProxyHandlerFactory([], this)
-      factory.classes.push(
-        {
-          class: Array,
-          value: new UndoableArrayHandler(onChange, factory)
-        },
-        {
-          class: Date,
-          value: new UndoableDateHandler(onChange)
-        },
-        {
-          class: Map,
-          value: new UndoableMapHandler(onChange, factory)
-        },
-        {
-          class: Set,
-          value: new UndoableSetHandler(onChange, factory)
-        }
-      )
-      this.propertyHandlerFactory = factory
-    }
-  }
-
+export class UndoableRecordHandler extends UndoableProxyHandler<UntypedObject> {
   deleteProperty (
-    target: UntypedRecord,
+    target: UntypedObject,
     property: string
   ): boolean {
     return this.applyChange(
@@ -240,7 +201,7 @@ export class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
   }
 
   set (
-    target: UntypedRecord,
+    target: UntypedObject,
     property: ValidKey,
     value: any
   ): boolean {
@@ -249,3 +210,5 @@ export class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
     )
   }
 }
+
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Object.prototype, UndoableRecordHandler)

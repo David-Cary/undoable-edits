@@ -336,10 +336,10 @@ describe("UndoableTransferItem", () => {
   })
 })
 
-describe("UndoableRecordHandler", () => {
+describe("UndoableArrayHandler", () => {
   const capturedActions: UndoableAction[] = []
   const captureAction = (action: UndoableAction) => capturedActions.push(action)
-  const handler = new UndoableArrayHandler(captureAction)
+  const handler = new UndoableArrayHandler(captureAction, true)
   test("should report indexed changes", () => {
     capturedActions.length = 0
     const proxy = new Proxy([], handler)
@@ -472,5 +472,17 @@ describe("UndoableRecordHandler", () => {
     expect(proxy).toEqual([0, 1, 0])
     capturedActions[0]?.undo()
     expect(proxy).toEqual([1])
+  })
+  test("should return proxies for content objects", () => {
+    const item = { x: 0 }
+    const proxy = new Proxy([item], handler)
+    const first = proxy[0]
+    expect(first[PROXY_TARGET]).toBe(item)
+  })
+  test("should return proxies pop results", () => {
+    const item = { x: 0 }
+    const proxy = new Proxy([item], handler)
+    const result = proxy.pop()
+    expect(result[PROXY_TARGET]).toBe(item)
   })
 })

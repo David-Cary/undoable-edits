@@ -1,5 +1,5 @@
-import { type UndoableAction } from './actions';
-import { UndoableProxyHandler, type ValidKey } from './proxies';
+import { type UndoableAction, type UndoableActionCallback } from './actions';
+import { UndoableProxyHandler, type MaybeArray, type ProxyFactory } from './proxies';
 /**
  * UndoableAction for clearing a map.
  * @template K, V
@@ -59,5 +59,5 @@ export declare class UndoableSetMapValue<K = any, V = any> implements UndoableAc
  * @extends UndoableProxyHandler<UntypedRecord>
  */
 export declare class UndoableMapHandler<K = any, V = any> extends UndoableProxyHandler<Map<K, V>> {
-    get(target: Map<K, V>, property: ValidKey): any;
+    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean);
 }

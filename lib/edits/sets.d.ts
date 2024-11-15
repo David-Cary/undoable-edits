@@ -1,5 +1,5 @@
-import { type UndoableAction } from './actions';
-import { UndoableProxyHandler, type ValidKey } from './proxies';
+import { type UndoableAction, type UndoableActionCallback } from './actions';
+import { UndoableProxyHandler, type MaybeArray, type ProxyFactory } from './proxies';
 /**
  * UndoableAction for adding an item to a set.
  * @template T
@@ -55,5 +55,5 @@ export declare class UndoableDeleteSetItem<T = any> implements UndoableAction {
  * @extends UndoableProxyHandler<UntypedRecord>
  */
 export declare class UndoableSetHandler<T = any> extends UndoableProxyHandler<Set<T>> {
-    get(target: Set<T>, property: ValidKey): any;
+    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean);
 }

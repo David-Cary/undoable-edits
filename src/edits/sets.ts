@@ -1,9 +1,12 @@
 import {
-  type UndoableAction
+  type UndoableAction,
+  type UndoableActionCallback
 } from './actions'
 import {
   UndoableProxyHandler,
-  type ValidKey
+  ClassedUndoableProxyFactory,
+  type MaybeArray,
+  type ProxyFactory
 } from './proxies'
 
 /**
@@ -108,39 +111,42 @@ export class UndoableDeleteSetItem<T = any> implements UndoableAction {
  * @extends UndoableProxyHandler<UntypedRecord>
  */
 export class UndoableSetHandler<T = any> extends UndoableProxyHandler<Set<T>> {
-  get (
-    target: Set<T>,
-    property: ValidKey
-  ): any {
-    if (this.onChange != null) {
-      const onChange = this.onChange
-      switch (property) {
-        case 'add': {
+  constructor (
+    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    proxyFactory?: ProxyFactory | boolean
+  ) {
+    super(
+      actionCallbacks,
+      proxyFactory,
+      {
+        add: (target: Set<T>) => {
           return (value: T) => {
-            onChange(
+            this.onChange(
               new UndoableAddSetItem(target, value)
             )
-            return target.add(value)
+            const result = target.add(value)
+            return new Proxy(result, this)
           }
-        }
-        case 'clear': {
+        },
+        clear: (target: Set<T>) => {
           return () => {
-            onChange(
+            this.onChange(
               new UndoableClearSet(target)
             )
             target.clear()
           }
-        }
-        case 'delete': {
+        },
+        delete: (target: Set<T>) => {
           return (value: T) => {
-            onChange(
+            this.onChange(
               new UndoableDeleteSetItem(target, value)
             )
             return target.delete(value)
           }
         }
       }
-    }
-    return super.get(target, property)
+    )
   }
 }
+
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Set.prototype, UndoableSetHandler)

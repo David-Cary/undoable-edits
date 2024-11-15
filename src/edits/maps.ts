@@ -1,9 +1,12 @@
 import {
-  type UndoableAction
+  type UndoableAction,
+  type UndoableActionCallback
 } from './actions'
 import {
   UndoableProxyHandler,
-  type ValidKey
+  ClassedUndoableProxyFactory,
+  type MaybeArray,
+  type ProxyFactory
 } from './proxies'
 
 /**
@@ -118,39 +121,41 @@ export class UndoableSetMapValue<K = any, V = any> implements UndoableAction {
  * @extends UndoableProxyHandler<UntypedRecord>
  */
 export class UndoableMapHandler<K = any, V = any> extends UndoableProxyHandler<Map<K, V>> {
-  get (
-    target: Map<K, V>,
-    property: ValidKey
-  ): any {
-    if (this.onChange != null) {
-      const onChange = this.onChange
-      switch (property) {
-        case 'clear': {
+  constructor (
+    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    proxyFactory?: ProxyFactory | boolean
+  ) {
+    super(
+      actionCallbacks,
+      proxyFactory,
+      {
+        clear: (target: Map<K, V>) => {
           return () => {
-            onChange(
+            this.onChange(
               new UndoableClearMap(target)
             )
             target.clear()
           }
-        }
-        case 'delete': {
+        },
+        delete: (target: Map<K, V>) => {
           return (key: K) => {
-            onChange(
+            this.onChange(
               new UndoableDeleteMapItem(target, key)
             )
             return target.delete(key)
           }
-        }
-        case 'set': {
+        },
+        set: (target: Map<K, V>) => {
           return (key: K, value: V) => {
-            onChange(
+            this.onChange(
               new UndoableSetMapValue(target, key, value)
             )
             return target.set(key, value)
           }
         }
       }
-    }
-    return super.get(target, property)
+    )
   }
 }
+
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Map.prototype, UndoableMapHandler)

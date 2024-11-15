@@ -1,9 +1,12 @@
 import {
-  type UndoableAction
+  type UndoableAction,
+  type UndoableActionCallback
 } from './actions'
 import {
   UndoableProxyHandler,
-  type ValidKey
+  type MaybeArray,
+  type ProxyFactory,
+  ClassedUndoableProxyFactory
 } from './proxies'
 
 /**
@@ -515,135 +518,137 @@ export class UndoableSetUTCSeconds implements UndoableAction {
  * @extends UndoableProxyHandler<Date>
  */
 export class UndoableDateHandler extends UndoableProxyHandler<Date> {
-  get (
-    target: Date,
-    property: ValidKey
-  ): any {
-    if (this.onChange != null) {
-      const onChange = this.onChange
-      switch (property) {
-        case 'setDate': {
+  constructor (
+    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    proxyFactory?: ProxyFactory | boolean
+  ) {
+    super(
+      actionCallbacks,
+      proxyFactory,
+      {
+        setDate: (target: Date) => {
           return (value: number) => {
-            onChange(
+            this.onChange(
               new UndoableSetDayOfMonth(target, value)
             )
             return target.setDate(value)
           }
-        }
-        case 'setFullYear': {
+        },
+        setFullYear: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setFullYear>) => {
-            onChange(
+            this.onChange(
               new UndoableSetFullYear(target, ...args)
             )
             return target.setFullYear(...args)
           }
-        }
-        case 'setHours': {
+        },
+        setHours: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setHours>) => {
-            onChange(
+            this.onChange(
               new UndoableSetHours(target, ...args)
             )
             return target.setHours(...args)
           }
-        }
-        case 'setMilliseconds': {
+        },
+        setMilliseconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMilliseconds>) => {
-            onChange(
+            this.onChange(
               new UndoableSetMilliseconds(target, ...args)
             )
             return target.setMilliseconds(...args)
           }
-        }
-        case 'setMinutes': {
+        },
+        setMinutes: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMinutes>) => {
-            onChange(
+            this.onChange(
               new UndoableSetMinutes(target, ...args)
             )
             return target.setMinutes(...args)
           }
-        }
-        case 'setMonth': {
+        },
+        setMonth: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMonth>) => {
-            onChange(
+            this.onChange(
               new UndoableSetMonth(target, ...args)
             )
             return target.setMonth(...args)
           }
-        }
-        case 'setSeconds': {
+        },
+        setSeconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setSeconds>) => {
-            onChange(
+            this.onChange(
               new UndoableSetSeconds(target, ...args)
             )
             return target.setSeconds(...args)
           }
-        }
-        case 'setTime': {
+        },
+        setTime: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setTime>) => {
-            onChange(
+            this.onChange(
               new UndoableSetDateTimestamp(target, ...args)
             )
             return target.setTime(...args)
           }
-        }
-        case 'setUTCDate': {
+        },
+        setUTCDate: (target: Date) => {
           return (value: number) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCDayOfMonth(target, value)
             )
             return target.setUTCDate(value)
           }
-        }
-        case 'setUTCFullYear': {
+        },
+        setUTCFullYear: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCFullYear>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCFullYear(target, ...args)
             )
             return target.setUTCFullYear(...args)
           }
-        }
-        case 'setUTCHours': {
+        },
+        setUTCHours: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCHours>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCHours(target, ...args)
             )
             return target.setUTCHours(...args)
           }
-        }
-        case 'setUTCMilliseconds': {
+        },
+        setUTCMilliseconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMilliseconds>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCMilliseconds(target, ...args)
             )
             return target.setUTCMilliseconds(...args)
           }
-        }
-        case 'setUTCMinutes': {
+        },
+        setUTCMinutes: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMinutes>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCMinutes(target, ...args)
             )
             return target.setUTCMinutes(...args)
           }
-        }
-        case 'setUTCMonth': {
+        },
+        setUTCMonth: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMonth>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCMonth(target, ...args)
             )
             return target.setUTCMonth(...args)
           }
-        }
-        case 'setUTCSeconds': {
+        },
+        setUTCSeconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCSeconds>) => {
-            onChange(
+            this.onChange(
               new UndoableSetUTCSeconds(target, ...args)
             )
             return target.setUTCSeconds(...args)
           }
         }
       }
-    }
-    return super.get(target, property)
+    )
   }
 }
+
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Date.prototype, UndoableDateHandler)

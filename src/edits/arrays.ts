@@ -1,9 +1,13 @@
 import {
-  type UndoableAction
+  type UndoableAction,
+  type UndoableActionCallback
 } from './actions'
 import {
-  UndoableProxyHandler,
-  type ValidKey
+  type ValidKey,
+  type MaybeArray,
+  type ProxyFactory,
+  ClassedUndoableProxyFactory,
+  UndoableProxyHandler
 } from './proxies'
 
 /**
@@ -458,83 +462,95 @@ export class UndoableUnshiftItems implements UndoableAction {
 /**
  * Proxy handler with undoable action reporting for arrays.
  * @class
- * @extends UndoableProxyHandler<UntypedRecord>
+ * @extends UndoableProxyHandler<T[]>
  */
 export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
-  get (
-    target: T[],
-    property: ValidKey
-  ): any {
-    if (this.onChange != null) {
-      const onChange = this.onChange
-      switch (property) {
-        case 'push': {
+  constructor (
+    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    proxyFactory?: ProxyFactory | boolean
+  ) {
+    super(
+      actionCallbacks,
+      proxyFactory,
+      {
+        at: (target: T[]) => {
+          return (index: number) => {
+            const value = target.at(index)
+            return this.getProxiedValue(value)
+          }
+        },
+        copyWithin: (target: T[]) => {
+          return (destination: number, start: number, end?: number) => {
+            this.onChange(
+              new UndoableCopyWithin(target, destination, start, end)
+            )
+            const value = target.copyWithin(destination, start, end)
+            return new Proxy(value, this)
+          }
+        },
+        fill: (target: T[]) => {
+          return (value: T, start: number, end?: number) => {
+            this.onChange(
+              new UndoableFill(target, value, start, end)
+            )
+            const result = target.fill(value, start, end)
+            return new Proxy(result, this)
+          }
+        },
+        pop: (target: T[]) => {
           return (...items: T[]) => {
-            onChange(
+            this.onChange(
+              new UndoablePopItem(target)
+            )
+            const item = target.pop()
+            return this.getProxiedValue(item)
+          }
+        },
+        push: (target: T[]) => {
+          return (...items: T[]) => {
+            this.onChange(
               new UndoablePushItems(target, ...items)
             )
             return target.push(...items)
           }
-        }
-        case 'pop': {
-          return (...items: T[]) => {
-            onChange(
-              new UndoablePopItem(target)
+        },
+        reverse: (target: T[]) => {
+          return () => {
+            this.onChange(
+              new UndoableReverse(target)
             )
-            return target.pop()
+            const value = target.reverse()
+            return new Proxy(value, this)
           }
-        }
-        case 'unshift': {
+        },
+        shift: (target: T[]) => {
           return (...items: T[]) => {
-            onChange(
+            this.onChange(
+              new UndoableShiftItem(target)
+            )
+            const item = target.shift()
+            return this.getProxiedValue(item)
+          }
+        },
+        splice: (target: T[]) => {
+          return (start: number, deleteCount: number, ...items: T[]) => {
+            this.onChange(
+              new UndoableSplice(target, start, deleteCount, ...items)
+            )
+            const value = target.splice(start, deleteCount, ...items)
+            return new Proxy(value, this)
+          }
+        },
+        unshift: (target: T[]) => {
+          return (...items: T[]) => {
+            this.onChange(
               new UndoableUnshiftItems(target, ...items)
             )
             return target.unshift(...items)
           }
         }
-        case 'shift': {
-          return (...items: T[]) => {
-            onChange(
-              new UndoableShiftItem(target)
-            )
-            return target.shift()
-          }
-        }
-        case 'splice': {
-          return (start: number, deleteCount: number, ...items: T[]) => {
-            onChange(
-              new UndoableSplice(target, start, deleteCount, ...items)
-            )
-            return target.splice(start, deleteCount, ...items)
-          }
-        }
-        case 'copyWithin': {
-          return (destination: number, start: number, end?: number) => {
-            onChange(
-              new UndoableCopyWithin(target, destination, start, end)
-            )
-            return target.copyWithin(destination, start, end)
-          }
-        }
-        case 'fill': {
-          return (value: T, start: number, end?: number) => {
-            onChange(
-              new UndoableFill(target, value, start, end)
-            )
-            return target.fill(value, start, end)
-          }
-        }
-        case 'reverse': {
-          return () => {
-            onChange(
-              new UndoableReverse(target)
-            )
-            return target.reverse()
-          }
-        }
       }
-    }
-    return super.get(target, property)
+    )
   }
 
   set (
@@ -556,3 +572,5 @@ export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
     )
   }
 }
+
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Array.prototype, UndoableArrayHandler)

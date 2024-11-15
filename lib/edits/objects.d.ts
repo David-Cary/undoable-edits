@@ -1,13 +1,13 @@
-import { type UndoableAction, type UndoableActionCallback } from './actions';
-import { UndoableProxyHandler, type ValidKey } from './proxies';
+import { type UndoableAction } from './actions';
+import { UndoableProxyHandler, type ValidKey, type UntypedObject } from './proxies';
 /**
- * Sets a specific property value for a given object.
+ * Duplicates the property of a source object, deleting if said property is absent.
  * @class
  * @extends UndoableAction
  * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object property should be drawn from
  * @property {ValidKey} key - property to be modified
  * @property {any} previousValue - cached value of the removed property
- * @property {any} nextValue - value to be assigned
  * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export declare class UndoableCopyPropertyFrom implements UndoableAction {
@@ -79,18 +79,12 @@ export declare class UndoableRenameProperty implements UndoableAction {
     undo(): void;
 }
 /**
- * Typing for plain old javascript object.
- * @type
- */
-export type UntypedRecord = Record<ValidKey, any>;
-/**
  * Proxy handler with undoable action reporting for plain old javascript objects.
  * @class
- * @extends UndoableProxyHandler<UntypedRecord>
+ * @extends DefaultedUndoableProxyHandler<UntypedObject>
  * @property {boolean} deep - if true, any object property value will be wrapped in a proxy
  */
-export declare class UndoableRecordHandler extends UndoableProxyHandler<UntypedRecord> {
-    constructor(onChange?: UndoableActionCallback, deep?: boolean);
-    deleteProperty(target: UntypedRecord, property: string): boolean;
-    set(target: UntypedRecord, property: ValidKey, value: any): boolean;
+export declare class UndoableRecordHandler extends UndoableProxyHandler<UntypedObject> {
+    deleteProperty(target: UntypedObject, property: string): boolean;
+    set(target: UntypedObject, property: ValidKey, value: any): boolean;
 }

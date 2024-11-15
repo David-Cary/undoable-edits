@@ -65,6 +65,8 @@ Note that you can also use this to shift a value forward or backward within an a
 
 If you want to package multiple related changes under a single action, you can do so with an `UndoableActionSequence`.  Those take in a list of undoable actions are their sole parameter, executing them in that order on redo.  Undoing the sequence will undo each sub-action in reverse order.  This is especially useful in editors where you might want a single "undo" input to revert multiple changes.
 
+As of 1.2.0, you create `UndoableTransformation` actions by providing a target and a callback to be peformed on that target.  Said action will apply that callback and generate a list of subactions for that callback when redo is called.  That subaction list will then be used by the undo function of the action.  This gives the benefit of the above action sequence action, letting you trade having to manually specify steps for the overhead of a nested proxy to generate those for you.
+
 ## Proxies
 
 This library also provided proxy support for objects and arrays.  These let will trigger the above actions for you when you modify the target via the proxy.  They also report out said changes so you can capture them for an undo/redo control.
@@ -93,9 +95,14 @@ Note that such proxies can be created by simply creating a new `Proxy` with the 
 ### Object Proxies
 
 For non-array objects, use `UndoableRecordHandler` as the proxy handler.  That takes in the following optional constructor parameters:
- - `onChange`: Each time the object is modified via proxy the resulting undoable action will get passed on to this function.
- - `deep`: If set to true attempting to access an object property of the target will result in an undoable proxy of said object.
+ - `actionCallbacks`: Each time the object is modified via proxy the resulting undoable action or actions will get passed on to this function.
+ - `proxyFactory`: Lets you provide an `ProxyFactory` for wrapping property values and returns in their own proxies.  If "true" is passed in this will create a `ClassedUndoableProxyFactory` for the handler.
+ - `propertyGetters`: Lets you provide a map that specifies the callback function the proxy's get function will use for key properties.
  
+Prior to version 1.2.0, the 1st parameter could only be a single action, the 2nd could only be a boolean, and there was no 3rd parameter.
+
+Prior to 1.1.0 the constructor accepted an `arrayHandler` property in place of a proxy factory.
+
 You can use the above special proxy properties to rename the proxied object's properties, like so:
 ```
 const proxy = createUndoableProxy({}, new UndoableRecordHandler())
@@ -108,12 +115,38 @@ proxy[APPLY_UNDOABLE_ACTION](
 )
 ```
 
-Note, prior to 1.1.0 the constructor accepted an `arrayHandler` property.  That has since been replaced by a `propertyHandlerFactory` that gets automatically created if `deep` is set to true.
-
-By default the property handler factory is an instance of `ClassedProxyHandlerFactory` with entries for arrays, dates, maps, and sets.  Should you want support for additional object types you can add those to that factory's `classes` list.
-
 ### Other Proxies
 
-The library currently provided proxy handlers for arrays (UndoableArrayHandler), dates (UndoableDateHandler), maps (UndoableMapHandler), and sets (UndoableSetHandler).  Each of these work much like the above `UndoableRecordHandler`, save that they take an optional property handler factory in place of the `deep` parameter.
+The library currently provided proxy handlers for arrays (UndoableArrayHandler), dates (UndoableDateHandler), maps (UndoableMapHandler), and sets (UndoableSetHandler).  Each of these work much like the above `UndoableRecordHandler`.  Prior to 1.2.0 they took an optional property handler factory in place of the `deep` parameter, but that has since been standardized.
 
-By default a record handler set to deep proxying will contain an instance of each of the above handlers to deal with the associated value types.
+Should you create your own UndoableProxyHandler subclass to deal with a particular type of object you ensure it's supported by default in all new classed proxy factories like so:
+```
+ClassedUndoableProxyFactory.defaultHandlerClasses.set(Set.prototype, UndoableSetHandler)
+```
+
+That associates the new class with the target prototype.  When a new classed proxy factory is asked to create a proxy it will them use the provided class on any object with the provided prototype in it's prototype chain.
+
+As of 1.2.0 you can also call that class's `createProxyUsing` static function to generate a proxy with needing to provide a matching handler, like so:
+```
+const actions: UndoableAction[] = []
+const proxy = ClassedUndoableProxyFactory.createProxyUsing(
+  source,
+  (action) => { actions.push(action) }
+)    
+```
+
+## Action Tracks
+
+Version 1.2.0 adds the `UndoableActionTrack` class.  These maintain a history of performed and undone action, allowing you to undo the last change or redo the last undone change.
+
+To use this track, simply call `add` when a new action is performed, `undo` when you want to roll back that action, and `redo` if you want to reverse said roll back and reapply the change.  You can also use `clear` to wipe the track's action history.
+
+If you want to automate adding those changes for an object, you can use the `PropertyChangeTracker` class.  That will create a proxy for the target object and add any changes reported by that proxy to the tracker's action track.
+
+Here's an example of how you might use that:
+```
+const coord = { x: 0, y: 0 }
+const tracker = new PropertyChangeTracker(coord)
+tracker.proxy.x = 1
+tracker.track.undo()
+```

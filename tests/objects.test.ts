@@ -5,10 +5,12 @@ import {
   UndoableRenameProperty,
   UndoableCopyPropertyFrom,
   UndoableRecordHandler,
+  UndoableTransformation,
   unwrapProxyTarget,
   applyUndoableActionVia,
   APPLY_UNDOABLE_ACTION,
-  PROXY_TARGET
+  PROXY_TARGET,
+  PROXY_HANDLER
 } from "../src/index"
 
 interface Coords {
@@ -138,6 +140,9 @@ describe("UndoableRecordHandler", () => {
   test("should allow access to the original array via symbol", () => {
     expect(coordProxy[PROXY_TARGET]).toBe(coords)
   })
+  test("should allow access to the handler via symbol", () => {
+    expect(coordProxy[PROXY_HANDLER]).toBe(handler)
+  })
   test("should allow for property rename via symbol", () => {
     coordProxy.x = 1
     capturedActions.length = 0
@@ -261,5 +266,35 @@ describe("UndoableRecordHandler", () => {
         nextValue: 1
       }
     ])
+  })
+})
+
+describe("UndoableTransformation", () => {
+  const capturedActions: UndoableAction[] = []
+  const captureAction = (action: UndoableAction) => capturedActions.push(action)
+  const handler = new UndoableRecordHandler(captureAction)
+  const coords: Partial<Coords> = { x: 1, y: 2}
+  const coordProxy = new Proxy(coords, handler)
+  const action = new UndoableTransformation(
+    coordProxy,
+    (value: Partial<Coords>) => {
+      const t = value.x
+      value.x = value.y
+      value.y = t
+    }
+  )
+  describe("redo", () => {
+    test("should pack multiple sub actions into a single action", () => {
+      applyUndoableActionVia(coordProxy, action)
+      expect(coords).toEqual({ x: 2, y: 1 })
+      expect(capturedActions.length).toBe(1)
+      expect(action.steps.length).toBe(2)
+    })
+  })
+  describe("undo", () => {
+    test("should revert target's state", () => {
+      action.undo()
+      expect(coords).toEqual({ x: 1, y: 2 })
+    })
   })
 })
