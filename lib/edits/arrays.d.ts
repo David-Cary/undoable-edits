@@ -1,5 +1,5 @@
 import { type UndoableAction, type UndoableActionCallback } from './actions';
-import { type ValidKey, type MaybeArray, type ProxyFactory, UndoableProxyHandler } from './proxies';
+import { type ValidKey, type MaybeIterable, type ProxyFactory, UndoableProxyHandler } from './proxies';
 /**
  * Undoable action for changing an array's length.
  * @class
@@ -219,6 +219,6 @@ export declare class UndoableUnshiftItems implements UndoableAction {
  * @extends UndoableProxyHandler<T[]>
  */
 export declare class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
-    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean);
+    constructor(actionCallbacks: MaybeIterable<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean);
     set(target: T[], property: ValidKey, value: any): boolean;
 }

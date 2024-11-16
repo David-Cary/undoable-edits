@@ -4,7 +4,7 @@ import {
 } from './actions'
 import {
   type ValidKey,
-  type MaybeArray,
+  type MaybeIterable,
   type ProxyFactory,
   ClassedUndoableProxyFactory,
   UndoableProxyHandler
@@ -466,7 +466,7 @@ export class UndoableUnshiftItems implements UndoableAction {
  */
 export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
   constructor (
-    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    actionCallbacks: MaybeIterable<UndoableActionCallback>,
     proxyFactory?: ProxyFactory | boolean
   ) {
     super(

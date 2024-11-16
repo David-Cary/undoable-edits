@@ -5,7 +5,7 @@ import {
 import {
   UndoableProxyHandler,
   ClassedUndoableProxyFactory,
-  type MaybeArray,
+  type MaybeIterable,
   type ProxyFactory
 } from './proxies'
 
@@ -112,7 +112,7 @@ export class UndoableDeleteSetItem<T = any> implements UndoableAction {
  */
 export class UndoableSetHandler<T = any> extends UndoableProxyHandler<Set<T>> {
   constructor (
-    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    actionCallbacks: MaybeIterable<UndoableActionCallback>,
     proxyFactory?: ProxyFactory | boolean
   ) {
     super(

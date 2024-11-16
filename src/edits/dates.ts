@@ -4,7 +4,7 @@ import {
 } from './actions'
 import {
   UndoableProxyHandler,
-  type MaybeArray,
+  type MaybeIterable,
   type ProxyFactory,
   ClassedUndoableProxyFactory
 } from './proxies'
@@ -519,7 +519,7 @@ export class UndoableSetUTCSeconds implements UndoableAction {
  */
 export class UndoableDateHandler extends UndoableProxyHandler<Date> {
   constructor (
-    actionCallbacks: MaybeArray<UndoableActionCallback>,
+    actionCallbacks: MaybeIterable<UndoableActionCallback>,
     proxyFactory?: ProxyFactory | boolean
   ) {
     super(

@@ -25,6 +25,12 @@ export interface ProxyFactory<T extends object = object> {
      */
     getProxyFor: (value: T) => T;
 }
+/**
+ * Generic for either a lone value or an iterable collection of said values.
+ * @type
+ */
+export type MaybeIterable<T> = Iterable<T> | T;
+export declare function getSetFrom<T>(source: MaybeIterable<T>): Set<T>;
 export type GetPropertyOf<T extends object = object, V = any> = (target: T) => V;
 /**
  * Adds special access properties for undoable actions to a proxy handler.
@@ -36,10 +42,10 @@ export type GetPropertyOf<T extends object = object, V = any> = (target: T) => V
  * @property {Record<ValidKey, GetPropertyOf<T>>} propertyGetters - allows specifying proxy getter callbacks for key properties
  */
 export declare class UndoableProxyHandler<T extends object = object> implements ProxyHandler<T> {
-    readonly actionCallbacks: UndoableActionCallback[];
+    readonly actionCallbacks: Set<UndoableActionCallback>;
     proxyFactory?: ProxyFactory;
     propertyGetters: Record<ValidKey, GetPropertyOf<T>>;
-    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean, propertyGetters?: Record<ValidKey, GetPropertyOf<T>>);
+    constructor(actionCallbacks: MaybeIterable<UndoableActionCallback>, proxyFactory?: ProxyFactory | boolean, propertyGetters?: Record<ValidKey, GetPropertyOf<T>>);
     /**
      * Applies out action callbacks to the provided change.
      * @function
@@ -71,15 +77,10 @@ export declare class UndoableProxyHandler<T extends object = object> implements 
  */
 export type UntypedObject = Record<ValidKey, any>;
 /**
- * Generic for either a lone value or array of values of the same type.
- * @type
- */
-export type MaybeArray<T> = T[] | T;
-/**
  * Covers references to classes that use a callback list and proxy factory in their constructor.
  * @type
  */
-export type UndoableProxyHandlerClass = new (actionCallbacks: MaybeArray<UndoableActionCallback>, proxyFactory: ProxyFactory) => ProxyHandler<object>;
+export type UndoableProxyHandlerClass = new (actionCallbacks: MaybeIterable<UndoableActionCallback>, proxyFactory: ProxyFactory) => ProxyHandler<object>;
 /**
  * Produces proxies with undoable action support based on the prototype chain of the target value.
  * @class
@@ -88,7 +89,7 @@ export type UndoableProxyHandlerClass = new (actionCallbacks: MaybeArray<Undoabl
  * @property {Map<UntypedObject, ProxyHandler<object>>} handlers - map of cached handlers by target prototype
  */
 export declare class ClassedUndoableProxyFactory implements ProxyFactory<object> {
-    readonly actionCallbacks: UndoableActionCallback[];
+    readonly actionCallbacks: Set<UndoableActionCallback>;
     handlerClasses: Map<UntypedObject, UndoableProxyHandlerClass>;
     handlers: Map<UntypedObject, ProxyHandler<object>>;
     /**
@@ -96,7 +97,7 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
      * @static
      */
     static defaultHandlerClasses: Map<UntypedObject, UndoableProxyHandlerClass>;
-    constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>);
+    constructor(actionCallbacks: MaybeIterable<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>);
     getProxyFor<ValueType extends object>(value: ValueType): UndoableProxy<ValueType>;
     /**
      * Provides a proxy handler for a given object.
@@ -111,11 +112,11 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
      * @static
      * @function
      * @param {object} value - value to be proxied
-     * @param {MaybeArray<UndoableActionCallback>} actionCallbacks - callbacks to be used on value change
+     * @param {MaybeIterable<UndoableActionCallback>} actionCallbacks - callbacks to be used on value change
      * @param {Map<UntypedObject, UndoableProxyHandlerClass>} handlerClasses - map of handler classes by target prototype
      * @returns {UndoableProxy}
      */
-    static createProxyUsing<ValueType extends object>(value: ValueType, actionCallbacks: MaybeArray<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>): UndoableProxy<ValueType>;
+    static createProxyUsing<ValueType extends object>(value: ValueType, actionCallbacks: MaybeIterable<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>): UndoableProxy<ValueType>;
 }
 /**
  * Adds special access properties for undoable actions to a proxy.
@@ -174,4 +175,14 @@ export declare class UndoableTransformation<T extends object = object> extends U
      * @param {(value: object) => void} transform - callbacks to be used
      */
     static applyTransformTo(target: object, transform: (value: object) => void): void;
+}
+export declare class UndoableProxyListener<T extends object> {
+    callback: UndoableActionCallback;
+    protected _proxy?: UndoableProxy<T>;
+    get proxy(): UndoableProxy<T> | undefined;
+    set proxy(value: UndoableProxy<T> | undefined);
+    constructor(callback: UndoableActionCallback, source?: T, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>);
+    attachCallback(): void;
+    detachCallback(): void;
+    setProxyFrom(value: T, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>): void;
 }
