@@ -361,7 +361,17 @@ export class UndoableTransformation<T extends object = object> extends UndoableA
 }
 
 export class UndoableProxyListener<T extends object> {
-  callback: UndoableActionCallback
+  protected _callback: UndoableActionCallback
+  get callback (): UndoableActionCallback {
+    return this._callback
+  }
+
+  set callback (value: UndoableActionCallback) {
+    if (this._callback === value) return
+    this.detachCallback()
+    this._callback = value
+    this.attachCallback()
+  }
 
   protected _proxy?: UndoableProxy<T>
   get proxy (): UndoableProxy<T> | undefined {
@@ -380,7 +390,7 @@ export class UndoableProxyListener<T extends object> {
     source?: T,
     handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>
   ) {
-    this.callback = callback
+    this._callback = callback
     if (source != null) {
       this.setProxyFrom(source, handlerClasses)
     }

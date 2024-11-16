@@ -150,3 +150,5 @@ const tracker = new PropertyChangeTracker(coord)
 tracker.proxy.x = 1
 tracker.track.undo()
 ```
+
+Note that as of 1.2.3 property change trackers have been made a subclass of `UndoableProxyListener`.  Said listeners let you specify a callback to be attached to the proxy handlers action callbacks set.  Changing either the proxy or callback will clean up the old connect and attach the new callback to the new proxy.
