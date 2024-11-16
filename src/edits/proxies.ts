@@ -191,11 +191,11 @@ export class ClassedUndoableProxyFactory implements ProxyFactory<object> {
     this.handlerClasses = handlerClasses
   }
 
-  getProxyFor (
-    value: object
-  ): UndoableProxy {
+  getProxyFor<ValueType extends object> (
+    value: ValueType
+  ): UndoableProxy<ValueType> {
     const handler = this.getProxyHandlerFor(value)
-    return new Proxy(value, handler) as UndoableProxy
+    return new Proxy(value, handler) as UndoableProxy<ValueType>
   }
 
   /**
@@ -205,9 +205,9 @@ export class ClassedUndoableProxyFactory implements ProxyFactory<object> {
    * @param {object} value - value handler should be generated for
    * @returns {ProxyHandler<object>}
    */
-  getProxyHandlerFor (
-    value: object
-  ): ProxyHandler<object> {
+  getProxyHandlerFor<ValueType extends object> (
+    value: ValueType
+  ): ProxyHandler<ValueType> {
     let proto = Object.getPrototypeOf(value)
     while (proto != null) {
       const cachedHandler = this.handlers.get(proto)
@@ -220,7 +220,7 @@ export class ClassedUndoableProxyFactory implements ProxyFactory<object> {
       }
       proto = Object.getPrototypeOf(proto)
     }
-    return new UndoableProxyHandler(this.actionCallbacks, this)
+    return new UndoableProxyHandler(this.actionCallbacks, this) as ProxyHandler<ValueType>
   }
 
   /**
@@ -232,11 +232,11 @@ export class ClassedUndoableProxyFactory implements ProxyFactory<object> {
    * @param {Map<UntypedObject, UndoableProxyHandlerClass>} handlerClasses - map of handler classes by target prototype
    * @returns {UndoableProxy}
    */
-  static createProxyUsing (
-    value: object,
+  static createProxyUsing<ValueType extends object> (
+    value: ValueType,
     actionCallbacks: MaybeArray<UndoableActionCallback>,
     handlerClasses = ClassedUndoableProxyFactory.defaultHandlerClasses
-  ): UndoableProxy {
+  ): UndoableProxy<ValueType> {
     const handlerFactory = new ClassedUndoableProxyFactory(actionCallbacks, handlerClasses)
     const proxy = handlerFactory.getProxyFor(value)
     return proxy
@@ -252,6 +252,7 @@ export class ClassedUndoableProxyFactory implements ProxyFactory<object> {
  */
 export type UndoableProxy<T extends object = object> = T & {
   [PROXY_TARGET]: T
+  [PROXY_HANDLER]: UndoableProxyHandler<T>
   [APPLY_UNDOABLE_ACTION]: UndoableActionCallback
 }
 
@@ -322,7 +323,7 @@ export class UndoableTransformation<T extends object = object> extends UndoableA
       (action) => { this.steps.push(action) },
       handlerClasses
     )
-    this.proxy = handlerFactory.getProxyFor(unwrappedTarget) as UndoableProxy<T>
+    this.proxy = handlerFactory.getProxyFor(unwrappedTarget)
     this.transform = transform
   }
 

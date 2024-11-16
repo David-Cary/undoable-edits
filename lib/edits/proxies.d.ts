@@ -97,7 +97,7 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
      */
     static defaultHandlerClasses: Map<UntypedObject, UndoableProxyHandlerClass>;
     constructor(actionCallbacks: MaybeArray<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>);
-    getProxyFor(value: object): UndoableProxy;
+    getProxyFor<ValueType extends object>(value: ValueType): UndoableProxy<ValueType>;
     /**
      * Provides a proxy handler for a given object.
      * If the value isn't an object or there's no proxy factory, the value itself is returned.
@@ -105,7 +105,7 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
      * @param {object} value - value handler should be generated for
      * @returns {ProxyHandler<object>}
      */
-    getProxyHandlerFor(value: object): ProxyHandler<object>;
+    getProxyHandlerFor<ValueType extends object>(value: ValueType): ProxyHandler<ValueType>;
     /**
      * Generates an UndoableProxy with it's own factory based on the target's protoype chain.
      * @static
@@ -115,7 +115,7 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
      * @param {Map<UntypedObject, UndoableProxyHandlerClass>} handlerClasses - map of handler classes by target prototype
      * @returns {UndoableProxy}
      */
-    static createProxyUsing(value: object, actionCallbacks: MaybeArray<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>): UndoableProxy;
+    static createProxyUsing<ValueType extends object>(value: ValueType, actionCallbacks: MaybeArray<UndoableActionCallback>, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>): UndoableProxy<ValueType>;
 }
 /**
  * Adds special access properties for undoable actions to a proxy.
@@ -126,6 +126,7 @@ export declare class ClassedUndoableProxyFactory implements ProxyFactory<object>
  */
 export type UndoableProxy<T extends object = object> = T & {
     [PROXY_TARGET]: T;
+    [PROXY_HANDLER]: UndoableProxyHandler<T>;
     [APPLY_UNDOABLE_ACTION]: UndoableActionCallback;
 };
 /**
