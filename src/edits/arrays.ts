@@ -41,11 +41,9 @@ export class UndoableArrayResize implements UndoableAction {
 
   undo (): void {
     this.target.length = this.originalLength
-    this.target.splice(
-      this.length,
-      0,
-      ...this.trimmed
-    )
+    for (let i = 0; i < this.trimmed.length; i++) {
+      this.target[this.length + i] = this.trimmed[i]
+    }
   }
 }
 

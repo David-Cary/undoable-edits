@@ -177,7 +177,9 @@ export declare class UndoableTransformation<T extends object = object> extends U
     static applyTransformTo(target: object, transform: (value: object) => void): void;
 }
 export declare class UndoableProxyListener<T extends object> {
-    callback: UndoableActionCallback;
+    protected _callback: UndoableActionCallback;
+    get callback(): UndoableActionCallback;
+    set callback(value: UndoableActionCallback);
     protected _proxy?: UndoableProxy<T>;
     get proxy(): UndoableProxy<T> | undefined;
     set proxy(value: UndoableProxy<T> | undefined);

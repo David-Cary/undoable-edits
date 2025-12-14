@@ -58,6 +58,7 @@ describe("UndoableArrayResize", () => {
     )
     test("should expand to target length", () => {
       expand.redo()
+      expect(expand.trimmed.length).toBe(0)
       expect(target).toEqual([1, undefined, undefined, undefined])
     })
   })
@@ -68,6 +69,7 @@ describe("UndoableArrayResize", () => {
     })
     test("should restore trimmed items", () => {
       trim.undo()
+      expect(target.length).toEqual(3)
       expect(target).toEqual([1, 2, 3])
     })
   })
