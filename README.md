@@ -34,6 +34,15 @@ On the flip side, `UndoableRenameProperty` lets you move a value to a different 
 
 Version 1.1.3 adds `UndoableCopyPropertyFrom`, letting you mirror the property of a target object.  This works much like `UndoableSetProperty`, save that it will delete the target property should the source not have said property.
 
+Version 1.30 adds `UndoableAssignProperties` and `UndoableSetPropertyDefaults`.  The assign actions works much like `Object.assign` while set defaults will set every undefined property in the provided map.
+This version also adds the following actions that can apply to either arrays or records:
+ - `UndoableCopyValue` acts like `UndoableSetValue` below, using a clone of the target property value as the assigned value.
+ - `UndoableDeleteValue` works like delete property for records and a deletion splice for arrays.
+ - `UndoableInsertValue` lets you inject the provided value into an array via a splice.  For records it simply sets the provided property.
+ - `UndoableSetValue` lets you set either a named property or an indexed item.  Note that this can be used to change array length.
+ - `UndoableTransferValue` removes a property or item from one object or array and move it into the target property or position.
+There are also deep versions of some of the above (`UndoableDeleteNestedValue`, `UndoableInsertNestedValue`, and `UndoableSetNestedValue`).  These work like their more direct counterparts but accept a full property path in place of the target key.  In the case of deep sets and inserts, you can specify whethe they should inject additional objects and arrays as needed by setting the populate parameter in the constructor to true.
+
 ### Array Actions
 To set an array element, use `UndoableSetItemAt` instead of `UndoableSetProperty`.  This works much like setting a property, save that it takes an index instead of a key and will revert the arrays length when undone.
 
@@ -152,3 +161,60 @@ tracker.track.undo()
 ```
 
 Note that as of 1.2.3 property change trackers have been made a subclass of `UndoableProxyListener`.  Said listeners let you specify a callback to be attached to the proxy handlers action callbacks set.  Changing either the proxy or callback will clean up the old connect and attach the new callback to the new proxy.
+
+## Patching
+
+Version 1.3.0 adds actions to support patching objects or strings.
+
+### Patching Objects
+
+`UndoableJSONPatch` takes in and applies a variant of a [JSON Patch](https://jsonpatch.com/) where the path / from properties can be either the standard strings or full parsed key/index paths.  Said parsing is done through the `parseJSONPatchPath` function.  Note that the action lets you specify the available operation should you want to customize that, with the standard operations covered by `DEFAULT_JSON_PATCH_OPS_TO_ACTIONS`.
+
+### Patching Text
+
+`UndoableTextPatch` lets you modify subsections of the target property / item, provided said value is a string.  The patch format for these changes takes the form of an array of lengths and length-replacement text pairs.  For example, the following would change the target text from "tree house" to "Trent's house" when applied.
+```
+const target = {
+  text: "tree house"
+}
+const nameHouse = new UndoableTextPatch(
+  target,
+  'text',
+  [[1, "T"], 2, [1, "nt's"]]
+)
+```
+As you can see, any numeric steps indicate that many character should be left unmodified.  In contrast, tuples consist of the number of character to be deleted, followed by the text to replace said deleted characters.
+
+Should you want to do this outside of an action, the `applyTextPatch` function will do that for you, taking in the source text and patch to return the patched text.
+
+If you want to see a comparison of the orginal and patched text, you can use `getTextPatchChanges`, that will return a array of unmodifed strings and original/patched text pairs.  This is useful for displaying difference between the original and patched text as well as more compact storage for smaller changes to longer text.
+
+You can use the `PatchedTextSequence` class to reconstruct both the original and patched text from the above array.  Note that there's also a static `fromPatch` function that lets you create one of these sequences directly from the original text and it's patch.  For example:
+```
+const sequence = PatchedTextSequence.fromPatch(
+  "can of red paint",
+  [7, [3, "blue"]]
+)
+expect(sequence.segments).toEqual([
+  "can of ",
+  ["red", "blue"],
+  " paint"
+])
+expect(sequence.originalText).toEqual("can of red paint")
+expect(sequence.patchedText).toEqual("can of blue paint")
+```
+
+Should you want to create such an array from the kind of diff used by libraries like [Fast Diff](https://www.npmjs.com/package/fast-diff) you can do so via the `createTextPatchFromDiffTuples` function, like so:
+```
+const patch = createTextPatchFromDiffTuples(
+  [
+    [0, "can of "],
+    [-1, "red"],
+    [1, "blue"],
+    [0, "paint"]
+  ]
+)
+```
+If the target diff uses different markers for unchanged, deleted and added text, simply pass those markers as additional parameters in that order.
+
+You can also apply such diff as undoable actions via the `UndoableApplyDiffTuples` class.  As with undoable text patches, this takes the container and key as the first two parameters, with the last parameter being the diff to be applied.

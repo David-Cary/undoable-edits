@@ -1,6 +1,22 @@
 import { type UndoableAction } from './actions';
 import { UndoableProxyHandler, type ValidKey, type UntypedObject } from './proxies';
 /**
+ * Sets multiple properties to the provided key values.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object properties should be drawn from
+ * @property {Record<string, any>} previousValues - cached values of properties prior to change
+ */
+export declare class UndoableAssignProperties implements UndoableAction {
+    readonly target: UntypedObject;
+    readonly source: UntypedObject;
+    readonly previousValues: UntypedObject;
+    constructor(target: UntypedObject, source: UntypedObject);
+    redo(): void;
+    undo(): void;
+}
+/**
  * Duplicates the property of a source object, deleting if said property is absent.
  * @class
  * @extends UndoableAction
@@ -11,12 +27,12 @@ import { UndoableProxyHandler, type ValidKey, type UntypedObject } from './proxi
  * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export declare class UndoableCopyPropertyFrom implements UndoableAction {
-    readonly target: Record<ValidKey, any>;
-    readonly source: Record<ValidKey, any>;
+    readonly target: UntypedObject;
+    readonly source: UntypedObject;
     readonly key: ValidKey;
     readonly previousValue: any;
     readonly priorProperty: boolean;
-    constructor(target: Record<ValidKey, any>, key: ValidKey, source: Record<ValidKey, any>);
+    constructor(target: UntypedObject, key: ValidKey, source: UntypedObject);
     redo(): void;
     undo(): void;
 }
@@ -47,12 +63,28 @@ export declare class UndoableDeleteProperty implements UndoableAction {
  * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export declare class UndoableSetProperty implements UndoableAction {
-    readonly target: Record<ValidKey, any>;
+    readonly target: UntypedObject;
     readonly key: ValidKey;
     readonly previousValue: any;
     readonly nextValue: any;
     readonly priorProperty: boolean;
-    constructor(target: Record<ValidKey, any>, key: ValidKey, nextValue: any);
+    constructor(target: UntypedObject, key: ValidKey, nextValue: any);
+    redo(): void;
+    undo(): void;
+}
+/**
+ * Sets default values for the provided properties.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object properties should be drawn from
+ * @property {string[]} missingKeys - properties not initially defined by the target
+ */
+export declare class UndoableSetPropertyDefaults implements UndoableAction {
+    readonly target: UntypedObject;
+    readonly source: UntypedObject;
+    readonly missingKeys: string[];
+    constructor(target: UntypedObject, source: UntypedObject);
     redo(): void;
     undo(): void;
 }

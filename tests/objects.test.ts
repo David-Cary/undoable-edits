@@ -1,6 +1,8 @@
 import {
   UndoableAction,
+  UndoableAssignProperties,
   UndoableSetProperty,
+  UndoableSetPropertyDefaults,
   UndoableDeleteProperty,
   UndoableRenameProperty,
   UndoableCopyPropertyFrom,
@@ -51,6 +53,48 @@ describe("UndoableSetProperty", () => {
     test("should remove added property", () => {
       init.undo()
       expect(target).not.toHaveProperty('x')
+    })
+  })
+})
+
+describe("UndoableAssignProperties", () => {
+  const target: Partial<Coords> = { x: 1, y: 1 }
+  const action = new UndoableAssignProperties(
+    target,
+    { x: 2, z: 0 }
+  )
+  describe("redo", () => {
+    test("should overwrite target properties", () => {
+      action.redo()
+      expect(target).toEqual({ x: 2, y: 1, z: 0 })
+    })
+  })
+  describe("undo", () => {
+    test("should revert to prior values", () => {
+      action.undo()
+      expect(target).toEqual({ x: 1, y: 1 })
+      expect(target['z']).toBe(undefined)
+    })
+  })
+})
+
+describe("UndoableSetPropertyDefaults", () => {
+  const target: Partial<Coords> = { x: 1, y: 1 }
+  const action = new UndoableSetPropertyDefaults(
+    target,
+    { x: 2, z: 0 }
+  )
+  describe("redo", () => {
+    test("should supply property defaults", () => {
+      action.redo()
+      expect(target).toEqual({ x: 1, y: 1, z: 0 })
+    })
+  })
+  describe("undo", () => {
+    test("should revert to prior state", () => {
+      action.undo()
+      expect(target).toEqual({ x: 1, y: 1 })
+      expect(target['z']).toBe(undefined)
     })
   })
 })

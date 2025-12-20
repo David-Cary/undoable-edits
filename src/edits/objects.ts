@@ -9,6 +9,51 @@ import {
 } from './proxies'
 
 /**
+ * Sets multiple properties to the provided key values.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object properties should be drawn from
+ * @property {Record<string, any>} previousValues - cached values of properties prior to change
+ */
+export class UndoableAssignProperties implements UndoableAction {
+  readonly target: UntypedObject
+  readonly source: UntypedObject
+  readonly previousValues: UntypedObject
+
+  constructor (
+    target: UntypedObject,
+    source: UntypedObject
+  ) {
+    this.target = target
+    this.source = source
+    this.previousValues = {}
+    for (const key in source) {
+      if (key in target) {
+        this.previousValues[key] = target[key]
+      }
+    }
+  }
+
+  redo (): void {
+    for (const key in this.source) {
+      this.target[key] = this.source[key]
+    }
+  }
+
+  undo (): void {
+    for (const key in this.source) {
+      if (key in this.previousValues) {
+        this.target[key] = this.previousValues[key]
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.target[key]
+      }
+    }
+  }
+}
+
+/**
  * Duplicates the property of a source object, deleting if said property is absent.
  * @class
  * @extends UndoableAction
@@ -19,16 +64,16 @@ import {
  * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export class UndoableCopyPropertyFrom implements UndoableAction {
-  readonly target: Record<ValidKey, any>
-  readonly source: Record<ValidKey, any>
+  readonly target: UntypedObject
+  readonly source: UntypedObject
   readonly key: ValidKey
   readonly previousValue: any
   readonly priorProperty: boolean
 
   constructor (
-    target: Record<ValidKey, any>,
+    target: UntypedObject,
     key: ValidKey,
-    source: Record<ValidKey, any>
+    source: UntypedObject
   ) {
     this.target = target
     this.source = source
@@ -101,14 +146,14 @@ export class UndoableDeleteProperty implements UndoableAction {
  * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export class UndoableSetProperty implements UndoableAction {
-  readonly target: Record<ValidKey, any>
+  readonly target: UntypedObject
   readonly key: ValidKey
   readonly previousValue: any
   readonly nextValue: any
   readonly priorProperty: boolean
 
   constructor (
-    target: Record<ValidKey, any>,
+    target: UntypedObject,
     key: ValidKey,
     nextValue: any
   ) {
@@ -129,6 +174,49 @@ export class UndoableSetProperty implements UndoableAction {
       delete this.target[this.key]
     } else {
       this.target[this.key] = this.previousValue
+    }
+  }
+}
+
+/**
+ * Sets default values for the provided properties.
+ * @class
+ * @extends UndoableAction
+ * @property {Record<string, any>} target - object to be modified
+ * @property {Record<string, any>} source - object properties should be drawn from
+ * @property {string[]} missingKeys - properties not initially defined by the target
+ */
+export class UndoableSetPropertyDefaults implements UndoableAction {
+  readonly target: UntypedObject
+  readonly source: UntypedObject
+  readonly missingKeys: string[]
+
+  constructor (
+    target: UntypedObject,
+    source: UntypedObject
+  ) {
+    this.target = target
+    this.source = source
+    this.missingKeys = []
+    for (const key in source) {
+      if (key in target) continue
+      this.missingKeys.push(key)
+    }
+  }
+
+  redo (): void {
+    for (const key in this.source) {
+      if (key in this.target) continue
+      this.target[key] = this.source[key]
+    }
+  }
+
+  undo (): void {
+    for (const key of this.missingKeys) {
+      if (key in this.target) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.target[key]
+      }
     }
   }
 }
