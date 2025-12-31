@@ -2,7 +2,7 @@ import {
   UndoableJSONPatch
 } from "../src/index"
 
-describe("UndoableSetNestedValue", () => {
+describe("UndoableJSONPatch", () => {
   it("should support add operation", () => {
     const target = {
       text: ['a', 'b']
@@ -13,6 +13,17 @@ describe("UndoableSetNestedValue", () => {
     )
     action.redo()
     expect(target.text).toEqual(['a', '-', 'b'])
+  })
+  it("should append with a key of '-'", () => {
+    const target = {
+      text: ['a', 'b']
+    }
+    const action = new UndoableJSONPatch(
+      target,
+      [{ op: 'add', path: '/text/-', value: 'c'}]
+    )
+    action.redo()
+    expect(target.text).toEqual(['a', 'b', 'c'])
   })
   it("should support copy operation", () => {
     const target = {

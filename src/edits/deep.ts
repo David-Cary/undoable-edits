@@ -4,6 +4,8 @@ import {
 } from './actions'
 import {
   UndoableArrayResize,
+  UndoablePopItem,
+  UndoablePushItems,
   UndoableSetItemAt,
   UndoableSplice,
   UndoableTransferItem
@@ -48,6 +50,7 @@ export class UndoableDeleteValue implements UndoableAction {
     key: ValidKey
   ): UndoableAction | undefined {
     if (Array.isArray(target)) {
+      if (key === '-') return new UndoablePopItem(target)
       const index = Number(key)
       if (isNaN(index)) return
       return new UndoableSplice(target, index, 1)
@@ -95,13 +98,20 @@ export class UndoableSetValue implements UndoableAction {
     value: any
   ): UndoableAction | undefined {
     if (Array.isArray(target)) {
-      const index = Number(key)
-      if (isNaN(index)) {
-        return key === 'length'
-          ? new UndoableArrayResize(target, value)
-          : undefined
+      switch (key) {
+        case 'length': {
+          return new UndoableArrayResize(target, value)
+        }
+        case '-': {
+          return new UndoablePushItems(target, value)
+        }
+        default: {
+          const index = Number(key)
+          return isNaN(index)
+            ? undefined
+            : new UndoableSetItemAt(target, index, value)
+        }
       }
-      return new UndoableSetItemAt(target, index, value)
     }
     return new UndoableSetProperty(target, key, value)
   }
@@ -128,6 +138,9 @@ export class UndoableInsertValue extends UndoableSetValue {
     value: any
   ): UndoableAction | undefined {
     if (Array.isArray(target)) {
+      if (key === '-') {
+        return new UndoablePushItems(target, value)
+      }
       const index = Number(key)
       if (isNaN(index)) return
       return new UndoableSplice(target, index, 0, value)
@@ -186,8 +199,8 @@ export class UndoableTransferValue implements UndoableAction {
     to: PropertyReference
   ): UndoableAction {
     if (Array.isArray(from.target) && Array.isArray(to.target)) {
-      const fromIndex = Number(from.key)
-      const toIndex = Number(to.key)
+      const fromIndex = from.key === '-' ? from.target.length : Number(from.key)
+      const toIndex = to.key === '-' ? to.target.length : Number(to.key)
       if (!isNaN(fromIndex) && !isNaN(toIndex)) {
         return new UndoableTransferItem(
           { source: from.target, index: fromIndex },

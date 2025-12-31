@@ -10,7 +10,6 @@ import {
   UndoableInsertNestedValue,
   UndoableSetNestedValue,
   UndoableTransferValue,
-  parsePathString,
   reducePropertyPath
 } from '../edits/deep'
 
@@ -25,17 +24,32 @@ export interface JSONPatchStep {
   * Converts a JSONPatch path property to an array of keys and indices.
   * @function
   * @param {string | CommonKey[]} path - path string/array to be evaluated.
-  * @returns {CommonKey | undefined}
+  * @returns {CommonKey[]}
   */
 export function parseJSONPatchPath (
   path: string | CommonKey[]
 ): CommonKey[] {
   if (typeof path === 'string') {
-    const steps = parsePathString(path, '/')
+    const steps = path.split('/')
     if (steps[0] === '') steps.shift()
-    return steps
+    const decoded = steps.map(step => parseJSONPatchPathStep(step))
+    return decoded
   }
   return path
+}
+
+/**
+  * Converts a JSONPatch path step to .
+  * @function
+  * @param {string} value - key to be evaluated.
+  * @returns {CommonKey}
+  */
+export function parseJSONPatchPathStep (
+  value: string
+): CommonKey {
+  const swapped = value.replace(/~0/g, '~').replace(/~1/g, '/')
+  const index = Number(swapped)
+  return isNaN(index) ? swapped : index
 }
 
 export type JSONPatchToAction = (target: AnyObject, step: JSONPatchStep) => UndoableAction | undefined

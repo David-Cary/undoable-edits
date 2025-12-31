@@ -13,6 +13,13 @@ export interface JSONPatchStep {
   * @returns {CommonKey | undefined}
   */
 export declare function parseJSONPatchPath(path: string | CommonKey[]): CommonKey[];
+/**
+  * Converts a JSONPatch path step to .
+  * @function
+  * @param {string | CommonKey[]} path - path string/array to be evaluated.
+  * @returns {CommonKey | undefined}
+  */
+export declare function parseJSONPatchPathStep(value: string): CommonKey;
 export type JSONPatchToAction = (target: AnyObject, step: JSONPatchStep) => UndoableAction | undefined;
 export declare const DEFAULT_JSON_PATCH_OPS_TO_ACTIONS: {
     add: (target: AnyObject, step: JSONPatchStep) => UndoableInsertNestedValue;
