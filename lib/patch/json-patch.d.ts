@@ -10,14 +10,14 @@ export interface JSONPatchStep {
   * Converts a JSONPatch path property to an array of keys and indices.
   * @function
   * @param {string | CommonKey[]} path - path string/array to be evaluated.
-  * @returns {CommonKey | undefined}
+  * @returns {CommonKey[]}
   */
 export declare function parseJSONPatchPath(path: string | CommonKey[]): CommonKey[];
 /**
   * Converts a JSONPatch path step to .
   * @function
-  * @param {string | CommonKey[]} path - path string/array to be evaluated.
-  * @returns {CommonKey | undefined}
+  * @param {string} value - key to be evaluated.
+  * @returns {CommonKey}
   */
 export declare function parseJSONPatchPathStep(value: string): CommonKey;
 export type JSONPatchToAction = (target: AnyObject, step: JSONPatchStep) => UndoableAction | undefined;
