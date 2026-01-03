@@ -1,6 +1,8 @@
-import { type UndoableAction } from './actions'
 import {
-  type UntypedObject,
+  type UndoableAction,
+  type UntypedObject
+} from './actions'
+import {
   type UndoableProxyHandlerClass,
   UndoableProxyListener
 } from './proxies'

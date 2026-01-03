@@ -1,11 +1,12 @@
 import {
-  type UndoableAction
+  type ValidKey,
+  type UndoableAction,
+  type UntypedObject,
+  type ValueWrapper
 } from './actions'
 import {
   UndoableProxyHandler,
-  ClassedUndoableProxyFactory,
-  type ValidKey,
-  type UntypedObject
+  ClassedUndoableProxyFactory
 } from './proxies'
 
 /**
@@ -14,12 +15,11 @@ import {
  * @extends UndoableAction
  * @property {Record<string, any>} target - object to be modified
  * @property {Record<string, any>} source - object properties should be drawn from
- * @property {Record<string, any>} previousValues - cached values of properties prior to change
  */
 export class UndoableAssignProperties implements UndoableAction {
   readonly target: UntypedObject
   readonly source: UntypedObject
-  readonly previousValues: UntypedObject
+  protected _initializedData?: UntypedObject
 
   constructor (
     target: UntypedObject,
@@ -27,27 +27,38 @@ export class UndoableAssignProperties implements UndoableAction {
   ) {
     this.target = target
     this.source = source
-    this.previousValues = {}
-    for (const key in source) {
-      if (key in target) {
-        this.previousValues[key] = target[key]
+  }
+
+  initialize (): void {
+    this._initializedData = {}
+    for (const key in this.source) {
+      if (key in this.target) {
+        this._initializedData[key] = this.target[key]
       }
     }
   }
 
-  redo (): void {
+  apply (): UntypedObject {
+    if (this._initializedData == null) this.initialize()
     for (const key in this.source) {
       this.target[key] = this.source[key]
     }
+    return this.target
+  }
+
+  redo (): void {
+    this.apply()
   }
 
   undo (): void {
-    for (const key in this.source) {
-      if (key in this.previousValues) {
-        this.target[key] = this.previousValues[key]
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete this.target[key]
+    if (this._initializedData != null) {
+      for (const key in this.source) {
+        if (key in this._initializedData) {
+          this.target[key] = this._initializedData[key]
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete this.target[key]
+        }
       }
     }
   }
@@ -60,15 +71,12 @@ export class UndoableAssignProperties implements UndoableAction {
  * @property {Record<string, any>} target - object to be modified
  * @property {Record<string, any>} source - object property should be drawn from
  * @property {ValidKey} key - property to be modified
- * @property {any} previousValue - cached value of the removed property
- * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export class UndoableCopyPropertyFrom implements UndoableAction {
   readonly target: UntypedObject
   readonly source: UntypedObject
   readonly key: ValidKey
-  readonly previousValue: any
-  readonly priorProperty: boolean
+  protected _initializedData?: UntypedObject
 
   constructor (
     target: UntypedObject,
@@ -78,11 +86,30 @@ export class UndoableCopyPropertyFrom implements UndoableAction {
     this.target = target
     this.source = source
     this.key = key
-    this.previousValue = target[key]
-    this.priorProperty = key in target
+  }
+
+  initialize (): void {
+    this._initializedData = {}
+    if (this.key in this.target) {
+      this._initializedData[this.key] = this.target[this.key]
+    }
+  }
+
+  apply (): any {
+    if (this._initializedData == null) this.initialize()
+    if (this.key in this.source) {
+      const value = this.source[this.key]
+      this.target[this.key] = value
+      return value
+    }
+    if (this.key in this.target) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.target[this.key]
+    }
   }
 
   redo (): void {
+    if (this._initializedData == null) this.initialize()
     if (this.key in this.source) {
       this.target[this.key] = this.source[this.key]
     } else if (this.key in this.target) {
@@ -92,11 +119,13 @@ export class UndoableCopyPropertyFrom implements UndoableAction {
   }
 
   undo (): void {
-    if (!this.priorProperty && this.key in this.target) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.target[this.key]
-    } else {
-      this.target[this.key] = this.previousValue
+    if (this._initializedData != null) {
+      if (this.key in this._initializedData) {
+        this.target[this.key] = this._initializedData[this.key]
+      } else if (this.key in this.target) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.target[this.key]
+      }
     }
   }
 }
@@ -107,12 +136,11 @@ export class UndoableCopyPropertyFrom implements UndoableAction {
  * @extends UndoableAction
  * @property {Record<string, any>} target - object to be modified
  * @property {string} key - property to be removed
- * @property {any} previousValue - cached value of the removed property
  */
 export class UndoableDeleteProperty implements UndoableAction {
   readonly target: Record<string, any>
   readonly key: string
-  readonly previousValue: any
+  protected _initializedData?: ValueWrapper
 
   constructor (
     target: Record<string, any>,
@@ -120,18 +148,29 @@ export class UndoableDeleteProperty implements UndoableAction {
   ) {
     this.target = target
     this.key = key
-    this.previousValue = target[key]
+  }
+
+  initialize (): void {
+    this._initializedData = { value: this.target[this.key] }
+  }
+
+  apply (): boolean {
+    if (this._initializedData == null) this.initialize()
+    if (this.key in this.target) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      return delete this.target[this.key]
+    }
+    return false
   }
 
   redo (): void {
-    if (this.key in this.target) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.target[this.key]
-    }
+    this.apply()
   }
 
   undo (): void {
-    this.target[this.key] = this.previousValue
+    if (this._initializedData != null) {
+      this.target[this.key] = this._initializedData.value
+    }
   }
 }
 
@@ -141,16 +180,13 @@ export class UndoableDeleteProperty implements UndoableAction {
  * @extends UndoableAction
  * @property {Record<string, any>} target - object to be modified
  * @property {ValidKey} key - property to be modified
- * @property {any} previousValue - cached value of the removed property
  * @property {any} nextValue - value to be assigned
- * @property {boolean} priorProperty - cached check for if the property already existed
  */
 export class UndoableSetProperty implements UndoableAction {
   readonly target: UntypedObject
   readonly key: ValidKey
-  readonly previousValue: any
   readonly nextValue: any
-  readonly priorProperty: boolean
+  protected _initializedData?: UntypedObject
 
   constructor (
     target: UntypedObject,
@@ -159,21 +195,34 @@ export class UndoableSetProperty implements UndoableAction {
   ) {
     this.target = target
     this.key = key
-    this.previousValue = target[key]
     this.nextValue = nextValue
-    this.priorProperty = key in target
+  }
+
+  initialize (): void {
+    this._initializedData = {}
+    if (this.key in this.target) {
+      this._initializedData[this.key] = this.target[this.key]
+    }
+  }
+
+  apply (): any {
+    if (this._initializedData == null) this.initialize()
+    this.target[this.key] = this.nextValue
+    return true
   }
 
   redo (): void {
-    this.target[this.key] = this.nextValue
+    this.apply()
   }
 
   undo (): void {
-    if (!this.priorProperty && this.key in this.target) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.target[this.key]
-    } else {
-      this.target[this.key] = this.previousValue
+    if (this._initializedData != null) {
+      if (this.key in this._initializedData) {
+        this.target[this.key] = this._initializedData[this.key]
+      } else if (this.key in this.target) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.target[this.key]
+      }
     }
   }
 }
@@ -184,12 +233,11 @@ export class UndoableSetProperty implements UndoableAction {
  * @extends UndoableAction
  * @property {Record<string, any>} target - object to be modified
  * @property {Record<string, any>} source - object properties should be drawn from
- * @property {string[]} missingKeys - properties not initially defined by the target
  */
 export class UndoableSetPropertyDefaults implements UndoableAction {
   readonly target: UntypedObject
   readonly source: UntypedObject
-  readonly missingKeys: string[]
+  protected _initializedData?: UntypedObject
 
   constructor (
     target: UntypedObject,
@@ -197,23 +245,29 @@ export class UndoableSetPropertyDefaults implements UndoableAction {
   ) {
     this.target = target
     this.source = source
-    this.missingKeys = []
-    for (const key in source) {
-      if (key in target) continue
-      this.missingKeys.push(key)
-    }
   }
 
-  redo (): void {
+  initialize (): void {
+    this._initializedData = { ...this.target }
+  }
+
+  apply (): boolean {
+    if (this._initializedData == null) this.initialize()
     for (const key in this.source) {
       if (key in this.target) continue
       this.target[key] = this.source[key]
     }
+    return true
+  }
+
+  redo (): void {
+    this.apply()
   }
 
   undo (): void {
-    for (const key of this.missingKeys) {
-      if (key in this.target) {
+    if (this._initializedData != null) {
+      for (const key in this.target) {
+        if (key in this._initializedData) continue
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete this.target[key]
       }
@@ -228,17 +282,12 @@ export class UndoableSetPropertyDefaults implements UndoableAction {
  * @property {Record<string, any>} target - object to be modified
  * @property {string} previousKey - property to be replaced
  * @property {string} nextKey - property the value should be move to
- * @property {any} value - cached value of the target property
- * @property {any} displacedValue - cached value overwriten by moving the target value
- * @property {boolean} overwritesProperty - cached check for if target property name was already in use
  */
 export class UndoableRenameProperty implements UndoableAction {
   readonly target: Record<string, any>
   readonly previousKey: string
   readonly nextKey: string
-  readonly value: any
-  readonly displacedValue: any
-  readonly overwritesProperty: boolean
+  protected _initializedData?: UntypedObject
 
   constructor (
     target: Record<string, any>,
@@ -248,26 +297,48 @@ export class UndoableRenameProperty implements UndoableAction {
     this.target = target
     this.previousKey = previousKey
     this.nextKey = nextKey
-    this.value = target[previousKey]
-    this.displacedValue = target[nextKey]
-    this.overwritesProperty = nextKey in target
+  }
+
+  initialize (): void {
+    this._initializedData = {}
+    if (this.previousKey in this.target) {
+      this._initializedData[this.previousKey] = this.target[this.previousKey]
+    }
+    if (this.nextKey in this.target) {
+      this._initializedData[this.nextKey] = this.target[this.nextKey]
+    }
+  }
+
+  apply (): any {
+    if (this._initializedData == null) this.initialize()
+    if (this.previousKey in this.target) {
+      const value = this.target[this.previousKey]
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.target[this.previousKey]
+      this.target[this.nextKey] = value
+      return value
+    }
+    if (this.nextKey in this.target) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.target[this.nextKey]
+    }
   }
 
   redo (): void {
-    if (this.previousKey in this.target) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.target[this.previousKey]
-    }
-    this.target[this.nextKey] = this.value
+    this.apply()
   }
 
   undo (): void {
-    this.target[this.previousKey] = this.value
-    if (this.overwritesProperty) {
-      this.target[this.nextKey] = this.displacedValue
-    } else if (this.nextKey in this.target) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.target[this.nextKey]
+    if (this._initializedData != null) {
+      if (this.previousKey in this._initializedData) {
+        this.target[this.previousKey] = this._initializedData[this.previousKey]
+      }
+      if (this.nextKey in this._initializedData) {
+        this.target[this.nextKey] = this._initializedData[this.nextKey]
+      } else if (this.nextKey in this.target) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.target[this.nextKey]
+      }
     }
   }
 }

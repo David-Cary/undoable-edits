@@ -16,7 +16,7 @@ describe("UndoableDateHandler", () => {
     expect(dateProxy.getDate()).toBe(4)
     expect(capturedActions).toMatchObject([
       {
-        value: 4
+        values: [4]
       }
     ])
     capturedActions[0]?.undo()
@@ -52,7 +52,7 @@ describe("UndoableDateHandler", () => {
     expect(dateProxy.getMilliseconds()).toBe(110)
     expect(capturedActions).toMatchObject([
       {
-        value: 110
+        values: [110]
       }
     ])
     capturedActions[0]?.undo()
@@ -100,7 +100,7 @@ describe("UndoableDateHandler", () => {
     expect(dateProxy.getTime()).toBe(11)
     expect(capturedActions).toMatchObject([
       {
-        value: 11
+        values: [11]
       }
     ])
     capturedActions[0]?.undo()
@@ -112,7 +112,7 @@ describe("UndoableDateHandler", () => {
     expect(dateProxy.getUTCDate()).toBe(4)
     expect(capturedActions).toMatchObject([
       {
-        value: 4
+        values: [4]
       }
     ])
     capturedActions[0]?.undo()
@@ -148,7 +148,7 @@ describe("UndoableDateHandler", () => {
     expect(dateProxy.getUTCMilliseconds()).toBe(110)
     expect(capturedActions).toMatchObject([
       {
-        value: 110
+        values: [110]
       }
     ])
     capturedActions[0]?.undo()

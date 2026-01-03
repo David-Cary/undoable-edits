@@ -1,5 +1,5 @@
-import { type UndoableAction, UndoableActionSequence } from '../edits/actions';
-import { type AnyObject, type CommonKey, UndoableCopyValue, UndoableDeleteNestedValue, UndoableInsertNestedValue, UndoableSetNestedValue, UndoableTransferValue } from '../edits/deep';
+import { type AnyObject, type UndoableAction, UndoableActionSequence } from '../edits/actions';
+import { type CommonKey, UndoableCopyValue, UndoableDeleteNestedValue, UndoableInsertNestedValue, UndoableSetNestedValue, UndoableTransferValue } from '../edits/deep';
 export interface JSONPatchStep {
     op: string;
     path: string | CommonKey[];

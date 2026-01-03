@@ -1,56 +1,35 @@
-import { type UndoableAction } from './actions';
-import { type ValidKey, type UntypedObject } from './proxies';
-export type AnyObject = UntypedObject | any[];
+import { type AnyObject, DelegatingUndoableAction, type UndoableAction, type ValidKey } from './actions';
 export type CommonKey = string | number;
 /**
  * Sets the target value or array item by the provided key/index.
  * @class
  * @extends UndoableAction
- * @property {UndoableAction} delegate - specific sub-action to be applied based on context
  */
-export declare class UndoableDeleteValue implements UndoableAction {
-    readonly delegate?: UndoableAction;
+export declare class UndoableDeleteValue extends DelegatingUndoableAction {
+    target: AnyObject;
+    key: ValidKey;
     constructor(target: AnyObject, key: ValidKey);
-    /**
-     * Creates a more specific delete action based on whether the target is an array.
-     * @function
-     * @param {AnyObject} target - reference object for the target action
-     * @param {ValidKey} key - target property name or index
-     * @returns {UndoableAction | undefined}
-     */
-    createDelegatedAction(target: AnyObject, key: ValidKey): UndoableAction | undefined;
-    redo(): void;
-    undo(): void;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 /**
  * Sets the target value or array item by the provided key/index.
  * @class
- * @extends UndoableAction
- * @property {UndoableAction} delegate - specific sub-action to be applied based on context
+ * @extends DelegatingUndoableAction
  */
-export declare class UndoableSetValue implements UndoableAction {
-    readonly delegate?: UndoableAction;
-    constructor(target: AnyObject, key: ValidKey, nextValue: any);
-    /**
-     * Creates a more specific setter action based on whether the target is an array.
-     * @function
-     * @param {AnyObject} target - reference object for the target action
-     * @param {ValidKey} key - target property name or index
-     * @param {any} value - value to be assigned
-     * @returns {UndoableAction | undefined}
-     */
-    createDelegatedAction(target: AnyObject, key: ValidKey, value: any): UndoableAction | undefined;
-    redo(): void;
-    undo(): void;
+export declare class UndoableSetValue extends DelegatingUndoableAction {
+    target: AnyObject;
+    key: ValidKey;
+    value: any;
+    constructor(target: AnyObject, key: ValidKey, value: any);
+    createDelegatedAction(): UndoableAction | undefined;
 }
 /**
  * Insert an item if targetting an array or sets a value if targetting other objects.
  * @class
  * @extends UndoableAction
- * @property {UndoableAction} delegate - specific sub-action to be applied based on context
  */
 export declare class UndoableInsertValue extends UndoableSetValue {
-    createDelegatedAction(target: AnyObject, key: ValidKey, value: any): UndoableAction | undefined;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 export interface PropertyReference {
     target: AnyObject;
@@ -60,7 +39,6 @@ export interface PropertyReference {
  * Creates a clone of the provided object at the new destination.
  * @class
  * @extends UndoableAction
- * @property {UndoableAction} delegate - specific sub-action to be applied based on context
  */
 export declare class UndoableCopyValue extends UndoableSetValue {
     constructor(from: PropertyReference, to: PropertyReference);
@@ -68,22 +46,13 @@ export declare class UndoableCopyValue extends UndoableSetValue {
 /**
  * Moves a property or item from one object to another.
  * @class
- * @extends UndoableAction
- * @property {UndoableAction} delegate - specific sub-action to be applied based on context
+ * @extends DelegatingUndoableAction
  */
-export declare class UndoableTransferValue implements UndoableAction {
-    readonly delegate: UndoableAction;
+export declare class UndoableTransferValue extends DelegatingUndoableAction {
+    from: PropertyReference;
+    to: PropertyReference;
     constructor(from: PropertyReference, to: PropertyReference);
-    /**
-     * Creates a more specific transfer action based on whether the target is an array.
-     * @function
-     * @param {PropertyReference} from - provider of the target value
-     * @param {PropertyReference} to - recipient of the target value
-     * @returns {UndoableAction | undefined}
-     */
-    createDelegatedAction(from: PropertyReference, to: PropertyReference): UndoableAction;
-    redo(): void;
-    undo(): void;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 /**
   * Tries to reduce a nested property path to a simple property reference.
@@ -96,21 +65,13 @@ export declare function reducePropertyPath(source: AnyObject, path: ValidKey[]):
 /**
  * Sets a nested value of the provided object
  * @class
- * @extends UndoableAction
- * @property {UndoableAction} delegate - action to be applied after resolving pathing
+ * @extends DelegatingUndoableAction
  */
-export declare class UndoableDeleteNestedValue implements UndoableAction {
-    readonly delegate?: UndoableAction;
+export declare class UndoableDeleteNestedValue extends DelegatingUndoableAction {
+    target: AnyObject;
+    path: ValidKey[];
     constructor(target: AnyObject, path: ValidKey[]);
-    /**
-     * Creates a more specific delete action based on the reduced property path.
-     * @function
-     * @param {PropertyReference} prop - reference to the target value
-     * @returns {UndoableAction | undefined}
-     */
-    createDelegatedAction(prop: PropertyReference): UndoableAction;
-    redo(): void;
-    undo(): void;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 export interface SetValueRequest extends PropertyReference {
     value: any;
@@ -128,21 +89,15 @@ export declare function createSetNestedValueRequest(source: AnyObject, path: Val
 /**
  * Sets a nested value of the provided object
  * @class
- * @extends UndoableAction
- * @property {UndoableAction} delegate - action to be applied after resolving pathing
+ * @extends DelegatingUndoableAction
  */
-export declare class UndoableSetNestedValue implements UndoableAction {
-    readonly delegate?: UndoableAction;
+export declare class UndoableSetNestedValue extends DelegatingUndoableAction {
+    target: AnyObject;
+    path: ValidKey[];
+    value: any;
+    populate: boolean;
     constructor(target: AnyObject, path: ValidKey[], value: any, populate?: boolean);
-    /**
-     * Creates a more specific setter action based on the reduced property path.
-     * @function
-     * @param {SetValueRequest} request - reference to the target property and value to be assigned
-     * @returns {UndoableAction | undefined}
-     */
-    createDelegatedAction(request: SetValueRequest): UndoableAction;
-    redo(): void;
-    undo(): void;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 /**
  * Inserts a value into a nested array or sets the value of a nested object.
@@ -151,7 +106,7 @@ export declare class UndoableSetNestedValue implements UndoableAction {
  * @property {UndoableAction} delegate - action to be applied after resolving pathing
  */
 export declare class UndoableInsertNestedValue extends UndoableSetNestedValue {
-    createDelegatedAction(request: SetValueRequest): UndoableAction;
+    createDelegatedAction(): UndoableAction | undefined;
 }
 /**
  * Converts a path string to an array of keys and indices.

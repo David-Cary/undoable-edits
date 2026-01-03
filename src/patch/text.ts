@@ -1,10 +1,10 @@
 import {
-  type AnyObject,
   UndoableSetValue
 } from '../edits/deep'
 import {
+  type AnyObject,
   type ValidKey
-} from '../edits/proxies'
+} from '../edits/actions'
 
 export type TextPatchStep = [number, string]
 export type TextPatch = Array<number | TextPatchStep>

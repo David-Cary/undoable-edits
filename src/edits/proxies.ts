@@ -1,10 +1,10 @@
 import {
   type UndoableAction,
   type UndoableActionCallback,
-  UndoableActionSequence
+  UndoableActionSequence,
+  type UntypedObject,
+  type ValidKey
 } from './actions'
-
-export type ValidKey = string | number | symbol
 
 export const PROXY_HANDLER = Symbol('Proxy_handler')
 
@@ -99,10 +99,9 @@ export class UndoableProxyHandler<T extends object = object> implements ProxyHan
    */
   applyChange (
     change: UndoableAction
-  ): boolean {
+  ): any {
     this.onChange(change)
-    change.redo()
-    return true
+    return change.apply()
   }
 
   get (
@@ -156,12 +155,6 @@ export class UndoableProxyHandler<T extends object = object> implements ProxyHan
     return Reflect.has(target, property)
   }
 }
-
-/**
- * Typing for plain old javascript object.
- * @type
- */
-export type UntypedObject = Record<ValidKey, any>
 
 /**
  * Covers references to classes that use a callback list and proxy factory in their constructor.
@@ -306,7 +299,7 @@ export function applyUndoableActionVia<T extends object> (
 ): void {
   APPLY_UNDOABLE_ACTION in context
     ? (context as UndoableProxy<T>)[APPLY_UNDOABLE_ACTION](action)
-    : action.redo()
+    : action.apply()
 }
 
 /**
@@ -334,8 +327,18 @@ export class UndoableTransformation<T extends object = object> extends UndoableA
     this.transform = transform
   }
 
-  redo (): void {
+  initialize (): void {
     this.steps.length = 0
+  }
+
+  apply (): boolean {
+    this.initialize()
+    this.transform(this.proxy)
+    return true
+  }
+
+  redo (): void {
+    this.initialize()
     this.transform(this.proxy)
   }
 

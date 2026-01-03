@@ -1,6 +1,6 @@
 import {
-  type UndoableAction,
-  type UndoableActionCallback
+  type UndoableActionCallback,
+  UndoableSetViaFunction
 } from './actions'
 import {
   UndoableProxyHandler,
@@ -12,503 +12,323 @@ import {
 /**
  * Undoable action for changing a date's day of the month.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} value - target day of month
- * @property {number} previousValue - previous day of month
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetDayOfMonth implements UndoableAction {
-  readonly target: Date
-  readonly value: number
-  readonly previousValue: number
-
+export class UndoableSetDayOfMonth extends UndoableSetViaFunction<Date, typeof Date.prototype.setDate> {
   constructor (
     target: Date,
     value: number
   ) {
-    this.target = target
-    this.value = value
-    this.previousValue = target.getDate()
-  }
-
-  redo (): void {
-    this.target.setDate(this.value)
-  }
-
-  undo (): void {
-    this.target.setDate(this.previousValue)
+    super(
+      target,
+      target.setDate,
+      (target: Date) => [target.getDate()],
+      [value]
+    )
   }
 }
 
 /**
  * Undoable action for an array's setFullYear method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetFullYear implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setFullYear>
-  readonly previousValues: Parameters<typeof Date.prototype.setFullYear>
-
+export class UndoableSetFullYear extends UndoableSetViaFunction<Date, typeof Date.prototype.setFullYear> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setFullYear>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getFullYear(),
-      target.getMonth(),
-      target.getDate()
-    ]
-  }
-
-  redo (): void {
-    this.target.setFullYear(...this.values)
-  }
-
-  undo (): void {
-    this.target.setFullYear(...this.previousValues)
+    super(
+      target,
+      target.setFullYear,
+      (target: Date) => [
+        target.getFullYear(),
+        target.getMonth(),
+        target.getDate()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setHours method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetHours implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setHours>
-  readonly previousValues: Parameters<typeof Date.prototype.setHours>
-
+export class UndoableSetHours extends UndoableSetViaFunction<Date, typeof Date.prototype.setHours> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setHours>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getHours(),
-      target.getMinutes(),
-      target.getSeconds(),
-      target.getMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setHours(...this.values)
-  }
-
-  undo (): void {
-    this.target.setHours(...this.previousValues)
+    super(
+      target,
+      target.setHours,
+      (target: Date) => [
+        target.getHours(),
+        target.getMinutes(),
+        target.getSeconds(),
+        target.getMilliseconds()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for changing a date's milliseconds.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} value - target milliseconds
- * @property {number} previousValue - previous milliseconds
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetMilliseconds implements UndoableAction {
-  readonly target: Date
-  readonly value: number
-  readonly previousValue: number
-
+export class UndoableSetMilliseconds extends UndoableSetViaFunction<Date, typeof Date.prototype.setMilliseconds> {
   constructor (
     target: Date,
     value: number
   ) {
-    this.target = target
-    this.value = value
-    this.previousValue = target.getMilliseconds()
-  }
-
-  redo (): void {
-    this.target.setMilliseconds(this.value)
-  }
-
-  undo (): void {
-    this.target.setMilliseconds(this.previousValue)
+    super(
+      target,
+      target.setMilliseconds,
+      (target: Date) => [target.getMilliseconds()],
+      [value]
+    )
   }
 }
 
 /**
  * Undoable action for an array's setMinutes method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetMinutes implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setMinutes>
-  readonly previousValues: Parameters<typeof Date.prototype.setMinutes>
-
+export class UndoableSetMinutes extends UndoableSetViaFunction<Date, typeof Date.prototype.setMinutes> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setMinutes>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getMinutes(),
-      target.getSeconds(),
-      target.getMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setMinutes(...this.values)
-  }
-
-  undo (): void {
-    this.target.setMinutes(...this.previousValues)
+    super(
+      target,
+      target.setMinutes,
+      (target: Date) => [
+        target.getMinutes(),
+        target.getSeconds(),
+        target.getMilliseconds()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setMonth method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetMonth implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setMonth>
-  readonly previousValues: Parameters<typeof Date.prototype.setMonth>
-
+export class UndoableSetMonth extends UndoableSetViaFunction<Date, typeof Date.prototype.setMonth> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setMonth>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getMonth(),
-      target.getDate()
-    ]
-  }
-
-  redo (): void {
-    this.target.setMonth(...this.values)
-  }
-
-  undo (): void {
-    this.target.setMonth(...this.previousValues)
+    super(
+      target,
+      target.setMonth,
+      (target: Date) => [
+        target.getMonth(),
+        target.getDate()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setSeconds method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetSeconds implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setSeconds>
-  readonly previousValues: Parameters<typeof Date.prototype.setSeconds>
-
+export class UndoableSetSeconds extends UndoableSetViaFunction<Date, typeof Date.prototype.setSeconds> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setSeconds>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getSeconds(),
-      target.getMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setSeconds(...this.values)
-  }
-
-  undo (): void {
-    this.target.setSeconds(...this.previousValues)
+    super(
+      target,
+      target.setSeconds,
+      (target: Date) => [
+        target.getSeconds(),
+        target.getMilliseconds()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for changing a date's timestamp.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} value - target timestamp
- * @property {number} previousValue - previous timestamp
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetDateTimestamp implements UndoableAction {
-  readonly target: Date
-  readonly value: number
-  readonly previousValue: number
-
+export class UndoableSetDateTimestamp extends UndoableSetViaFunction<Date, typeof Date.prototype.setTime> {
   constructor (
     target: Date,
     value: number
   ) {
-    this.target = target
-    this.value = value
-    this.previousValue = target.getTime()
-  }
-
-  redo (): void {
-    this.target.setTime(this.value)
-  }
-
-  undo (): void {
-    this.target.setTime(this.previousValue)
+    super(
+      target,
+      target.setTime,
+      (target: Date) => [target.getTime()],
+      [value]
+    )
   }
 }
 
 /**
  * Undoable action for changing a date's UTC day of the month.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} value - target day of month
- * @property {number} previousValue - previous day of month
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCDayOfMonth implements UndoableAction {
-  readonly target: Date
-  readonly value: number
-  readonly previousValue: number
-
+export class UndoableSetUTCDayOfMonth extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCDate> {
   constructor (
     target: Date,
     value: number
   ) {
-    this.target = target
-    this.value = value
-    this.previousValue = target.getUTCDate()
-  }
-
-  redo (): void {
-    this.target.setUTCDate(this.value)
-  }
-
-  undo (): void {
-    this.target.setUTCDate(this.previousValue)
+    super(
+      target,
+      target.setUTCDate,
+      (target: Date) => [target.getUTCDate()],
+      [value]
+    )
   }
 }
 
 /**
  * Undoable action for an array's setUTCFullYear method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCFullYear implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setUTCFullYear>
-  readonly previousValues: Parameters<typeof Date.prototype.setUTCFullYear>
-
+export class UndoableSetUTCFullYear extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCFullYear> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setUTCFullYear>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getUTCFullYear(),
-      target.getUTCMonth(),
-      target.getUTCDate()
-    ]
-  }
-
-  redo (): void {
-    this.target.setUTCFullYear(...this.values)
-  }
-
-  undo (): void {
-    this.target.setUTCFullYear(...this.previousValues)
+    super(
+      target,
+      target.setUTCFullYear,
+      (target: Date) => [
+        target.getUTCFullYear(),
+        target.getUTCMonth(),
+        target.getUTCDate()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setUTCHours method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCHours implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setUTCHours>
-  readonly previousValues: Parameters<typeof Date.prototype.setUTCHours>
-
+export class UndoableSetUTCHours extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCHours> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setUTCHours>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getUTCHours(),
-      target.getUTCMinutes(),
-      target.getUTCSeconds(),
-      target.getUTCMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setUTCHours(...this.values)
-  }
-
-  undo (): void {
-    this.target.setUTCHours(...this.previousValues)
+    super(
+      target,
+      target.setUTCHours,
+      (target: Date) => [
+        target.getUTCHours(),
+        target.getUTCMinutes(),
+        target.getUTCSeconds(),
+        target.getUTCMilliseconds()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for changing a date's UTC milliseconds.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} value - target milliseconds
- * @property {number} previousValue - previous milliseconds
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCMilliseconds implements UndoableAction {
-  readonly target: Date
-  readonly value: number
-  readonly previousValue: number
-
+export class UndoableSetUTCMilliseconds extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCMilliseconds> {
   constructor (
     target: Date,
     value: number
   ) {
-    this.target = target
-    this.value = value
-    this.previousValue = target.getUTCMilliseconds()
-  }
-
-  redo (): void {
-    this.target.setUTCMilliseconds(this.value)
-  }
-
-  undo (): void {
-    this.target.setUTCMilliseconds(this.previousValue)
+    super(
+      target,
+      target.setUTCMilliseconds,
+      (target: Date) => [target.getUTCMilliseconds()],
+      [value]
+    )
   }
 }
 
 /**
  * Undoable action for an array's setUTCMinutes method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCMinutes implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setUTCMinutes>
-  readonly previousValues: Parameters<typeof Date.prototype.setUTCMinutes>
-
+export class UndoableSetUTCMinutes extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCMinutes> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setUTCMinutes>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getUTCMinutes(),
-      target.getUTCSeconds(),
-      target.getUTCMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setUTCMinutes(...this.values)
-  }
-
-  undo (): void {
-    this.target.setUTCMinutes(...this.previousValues)
+    super(
+      target,
+      target.setUTCMinutes,
+      (target: Date) => [
+        target.getUTCMinutes(),
+        target.getUTCSeconds(),
+        target.getUTCMilliseconds()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setUTCMonth method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCMonth implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setUTCMonth>
-  readonly previousValues: Parameters<typeof Date.prototype.setUTCMonth>
-
+export class UndoableSetUTCMonth extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCMonth> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setUTCMonth>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getUTCMonth(),
-      target.getUTCDate()
-    ]
-  }
-
-  redo (): void {
-    this.target.setUTCMonth(...this.values)
-  }
-
-  undo (): void {
-    this.target.setUTCMonth(...this.previousValues)
+    super(
+      target,
+      target.setUTCMonth,
+      (target: Date) => [
+        target.getUTCMonth(),
+        target.getUTCDate()
+      ],
+      params
+    )
   }
 }
 
 /**
  * Undoable action for an array's setSeconds method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - date to be modified
- * @property {number} values - supplied parameters
- * @property {number} previousValue - parameter values prior to change
+ * @extends UndoableSetViaFunction
  */
-export class UndoableSetUTCSeconds implements UndoableAction {
-  readonly target: Date
-  readonly values: Parameters<typeof Date.prototype.setUTCSeconds>
-  readonly previousValues: Parameters<typeof Date.prototype.setUTCSeconds>
-
+export class UndoableSetUTCSeconds extends UndoableSetViaFunction<Date, typeof Date.prototype.setUTCSeconds> {
   constructor (
     target: Date,
     ...params: Parameters<typeof Date.prototype.setUTCSeconds>
   ) {
-    this.target = target
-    this.values = params
-    this.previousValues = [
-      target.getUTCSeconds(),
-      target.getUTCMilliseconds()
-    ]
-  }
-
-  redo (): void {
-    this.target.setUTCSeconds(...this.values)
-  }
-
-  undo (): void {
-    this.target.setUTCSeconds(...this.previousValues)
+    super(
+      target,
+      target.setUTCSeconds,
+      (target: Date) => [
+        target.getUTCSeconds(),
+        target.getUTCMilliseconds()
+      ],
+      params
+    )
   }
 }
 
@@ -528,122 +348,107 @@ export class UndoableDateHandler extends UndoableProxyHandler<Date> {
       {
         setDate: (target: Date) => {
           return (value: number) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetDayOfMonth(target, value)
             )
-            return target.setDate(value)
           }
         },
         setFullYear: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setFullYear>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetFullYear(target, ...args)
             )
-            return target.setFullYear(...args)
           }
         },
         setHours: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setHours>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetHours(target, ...args)
             )
-            return target.setHours(...args)
           }
         },
         setMilliseconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMilliseconds>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetMilliseconds(target, ...args)
             )
-            return target.setMilliseconds(...args)
           }
         },
         setMinutes: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMinutes>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetMinutes(target, ...args)
             )
-            return target.setMinutes(...args)
           }
         },
         setMonth: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setMonth>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetMonth(target, ...args)
             )
-            return target.setMonth(...args)
           }
         },
         setSeconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setSeconds>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetSeconds(target, ...args)
             )
-            return target.setSeconds(...args)
           }
         },
         setTime: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setTime>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetDateTimestamp(target, ...args)
             )
-            return target.setTime(...args)
           }
         },
         setUTCDate: (target: Date) => {
           return (value: number) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCDayOfMonth(target, value)
             )
-            return target.setUTCDate(value)
           }
         },
         setUTCFullYear: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCFullYear>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCFullYear(target, ...args)
             )
-            return target.setUTCFullYear(...args)
           }
         },
         setUTCHours: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCHours>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCHours(target, ...args)
             )
-            return target.setUTCHours(...args)
           }
         },
         setUTCMilliseconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMilliseconds>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCMilliseconds(target, ...args)
             )
-            return target.setUTCMilliseconds(...args)
           }
         },
         setUTCMinutes: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMinutes>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCMinutes(target, ...args)
             )
-            return target.setUTCMinutes(...args)
           }
         },
         setUTCMonth: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCMonth>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCMonth(target, ...args)
             )
-            return target.setUTCMonth(...args)
           }
         },
         setUTCSeconds: (target: Date) => {
           return (...args: Parameters<typeof Date.prototype.setUTCSeconds>) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetUTCSeconds(target, ...args)
             )
-            return target.setUTCSeconds(...args)
           }
         }
       }

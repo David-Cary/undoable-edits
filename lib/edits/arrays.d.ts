@@ -1,101 +1,73 @@
-import { type UndoableAction, type UndoableActionCallback } from './actions';
-import { type ValidKey, type MaybeIterable, type ProxyFactory, UndoableProxyHandler } from './proxies';
+import { type ValidKey, type UndoableAction, type UndoableActionCallback, UndoableCallback, type ValueWrapper } from './actions';
+import { type MaybeIterable, type ProxyFactory, UndoableProxyHandler } from './proxies';
 /**
  * Undoable action for changing an array's length.
  * @class
  * @extends UndoableAction
- * @property {any[]} target - array to be modified
+ * @property {T[]} target - array to be modified
  * @property {number} length - desired length for the target array
  * @property {number} originalLength - cached length of array prior to change
  * @property {any[} trimmed - cached values removed by resizing
  */
-export declare class UndoableArrayResize implements UndoableAction {
-    readonly target: any[];
+export declare class UndoableArrayResize<T = any> implements UndoableAction {
+    protected _initialized: boolean;
+    readonly target: T[];
     readonly length: number;
-    readonly originalLength: number;
-    readonly trimmed: any[];
-    constructor(target: any[], length: number);
+    protected _originalLength: number;
+    protected _trimmed: T[];
+    constructor(target: T[], length: number);
+    initialize(): void;
+    apply(): number;
     redo(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's copyWithin method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {number} destination - position elements should be copied to
- * @property {number} start - starting position elements should be copied from
- * @property {number | undefined} end - position copy should stop at
- * @property {any[]} overwritten - cached values overwritten by copy
+ * @extends UndoableCallback
  */
-export declare class UndoableCopyWithin implements UndoableAction {
-    readonly target: any[];
-    readonly destination: number;
-    readonly start: number;
-    readonly end?: number;
-    readonly overwritten: any[];
-    constructor(target: any[], destination: number, start: number, end?: number);
-    redo(): void;
+export declare class UndoableCopyWithin<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.copyWithin> {
+    constructor(target: T[], ...params: Parameters<typeof Array.prototype.copyWithin>);
+    initialize(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's fill method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - value to fill the target positions with
- * @property {number} start - starting position of the fill
- * @property {number | undefined} end - position the fill stops at
- * @property {any[]} overwritten - cached values overwritten by the fill
+ * @extends UndoableCallback
  */
-export declare class UndoableFill implements UndoableAction {
-    readonly target: any[];
-    readonly value: any;
-    readonly start: number;
-    readonly end?: number;
-    readonly overwritten: any[];
-    constructor(target: any[], value: any, start: number, end?: number);
-    redo(): void;
+export declare class UndoableFill<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.fill> {
+    constructor(target: T[], ...params: Parameters<typeof Array.prototype.fill>);
+    initialize(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's pop method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - cached value to be removed
+ * @extends UndoableCallback
  */
-export declare class UndoablePopItem implements UndoableAction {
-    readonly target: any[];
-    readonly value: any;
-    constructor(target: any[]);
-    redo(): void;
+export declare class UndoablePopItem<T = any> extends UndoableCallback<ValueWrapper, T[], typeof Array.prototype.pop> {
+    constructor(target: T[]);
+    initialize(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's push method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any[]} values - values to be added to the array
+ * @extends UndoableCallback
  */
-export declare class UndoablePushItems implements UndoableAction {
-    readonly target: any[];
-    readonly values: any[];
-    constructor(target: any[], ...values: any[]);
-    redo(): void;
+export declare class UndoablePushItems<T = any> extends UndoableCallback<any, T[], typeof Array.prototype.push> {
+    constructor(target: T[], ...values: T[]);
     undo(): void;
 }
 /**
  * Undoable action for an array's reverse method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
+ * @extends UndoableCallback
  */
-export declare class UndoableReverse implements UndoableAction {
-    readonly target: any[];
+export declare class UndoableReverse<T = any> extends UndoableCallback<boolean, T[], typeof Array.prototype.reverse> {
     constructor(target: any[]);
-    redo(): void;
+    initialize(): void;
     undo(): void;
 }
 /**
@@ -108,62 +80,49 @@ export declare class UndoableReverse implements UndoableAction {
  * @property {any} nextValue - value to be assigned
  * @property {number} priorLength - cached length of array before assignment
  */
-export declare class UndoableSetItemAt implements UndoableAction {
-    readonly target: any[];
+export declare class UndoableSetItemAt<T = any> implements UndoableAction {
+    readonly target: T[];
     readonly index: number;
-    readonly previousValue: any;
-    readonly nextValue: any;
-    readonly priorLength: number;
-    constructor(target: any[], index: number, nextValue: any);
+    protected _initializedData?: {
+        value: T;
+        length: number;
+    };
+    readonly nextValue: T;
+    protected _priorLength: number;
+    constructor(target: T[], index: number, nextValue: any);
+    initialize(): void;
+    apply(): boolean;
     redo(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's shift method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - cached value to be removed
+ * @extends UndoableCallback
  */
-export declare class UndoableShiftItem implements UndoableAction {
-    readonly target: any[];
-    readonly value: any;
-    constructor(target: any[]);
-    redo(): void;
+export declare class UndoableShiftItem<T = any> extends UndoableCallback<ValueWrapper, T[], typeof Array.prototype.shift> {
+    constructor(target: T[]);
+    initialize(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's sort method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {((a: any, b: any) => number) | undefined} compare - comparison function to be applied to sort
- * @property {any[]} unsorted - order of the array's contents before the sort
+ * @extends UndoableCallback
  */
-export declare class UndoableSort implements UndoableAction {
-    readonly target: any[];
-    readonly compare?: (a: any, b: any) => number;
-    readonly unsorted: any[];
-    constructor(target: any[], compare?: (a: any, b: any) => number);
-    redo(): void;
+export declare class UndoableSort<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.sort> {
+    constructor(target: T[], ...params: Parameters<typeof Array.prototype.sort>);
+    initialize(): void;
     undo(): void;
 }
 /**
  * Undoable action for an array's splice method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {number} value - position the splice starts at
- * @property {any[]} deletions - values removed by the splice
- * @property {any[]} insertions - values added by the splice
+ * @extends UndoableCallback
  */
-export declare class UndoableSplice implements UndoableAction {
-    readonly target: any[];
-    readonly start: number;
-    readonly deletions: any[];
-    readonly insertions: any[];
-    constructor(target: any[], start: number, deleteCount?: number, ...items: any[]);
-    redo(): void;
+export declare class UndoableSplice<T = any> extends UndoableCallback<Parameters<typeof Array.prototype.splice>, T[], typeof Array.prototype.splice> {
+    constructor(target: T[], ...params: Parameters<typeof Array.prototype.splice>);
+    initialize(): void;
     undo(): void;
 }
 /**
@@ -188,7 +147,10 @@ export interface ArrayElementReference<T = any> {
 export declare class UndoableTransferItem<T = any> implements UndoableAction {
     readonly from: ArrayElementReference<T>;
     readonly to: ArrayElementReference<T>;
+    protected _initializedData: any[];
     constructor(from: ArrayElementReference<T>, to: ArrayElementReference<T>);
+    apply(): ArrayElementReference<T> | undefined;
+    initialize(): void;
     redo(): void;
     undo(): void;
     /**
@@ -202,15 +164,10 @@ export declare class UndoableTransferItem<T = any> implements UndoableAction {
 /**
  * Undoable action for an array's unshift method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any[]} values - values to be added to the array
+ * @extends UndoableCallback
  */
-export declare class UndoableUnshiftItems implements UndoableAction {
-    readonly target: any[];
-    readonly values: any[];
-    constructor(target: any[], ...values: any[]);
-    redo(): void;
+export declare class UndoableUnshiftItems<T = any> extends UndoableCallback<any, T[], typeof Array.prototype.unshift> {
+    constructor(target: T[], ...values: any[]);
     undo(): void;
 }
 /**

@@ -1,6 +1,6 @@
 import {
-  type UndoableAction,
-  type UndoableActionCallback
+  type UndoableActionCallback,
+  UndoableCallback
 } from './actions'
 import {
   UndoableProxyHandler,
@@ -13,32 +13,26 @@ import {
  * UndoableAction for adding an item to a set.
  * @template T
  * @class
- * @extends UndoableAction
- * @property {Set<T>} target - set to be modified
- * @property {T} value - value to be added
- * @property {boolean} existingItem - cached check for if the item is already in the set
+ * @extends UndoableCallback
  */
-export class UndoableAddSetItem<T = any> implements UndoableAction {
-  readonly target: Set<T>
-  readonly value: T
-  readonly existingItem: boolean
-
+export class UndoableAddSetItem<T = any>
+  extends UndoableCallback<boolean, Set<T>, typeof Set.prototype.add> {
   constructor (
     target: Set<T>,
-    value: T
+    ...params: Parameters<typeof Set.prototype.add>
   ) {
-    this.target = target
-    this.value = value
-    this.existingItem = target.has(value)
+    super(target, target.add, params)
   }
 
-  redo (): void {
-    this.target.add(this.value)
+  initialize (): void {
+    const [value] = this.values
+    this._initializedData = this.target.has(value)
   }
 
   undo (): void {
-    if (!this.existingItem) {
-      this.target.delete(this.value)
+    if (this._initializedData === false) {
+      const [value] = this.values
+      this.target.delete(value)
     }
   }
 }
@@ -47,27 +41,24 @@ export class UndoableAddSetItem<T = any> implements UndoableAction {
  * UndoableAction for clearing a set.
  * @template T
  * @class
- * @extends UndoableAction
- * @property {Set<T>} target - set to be modified
- * @property {Set<T>} cache - values prior to clear
+ * @extends UndoableCallback
  */
-export class UndoableClearSet<T = any> implements UndoableAction {
-  readonly target: Set<T>
-  readonly cache: Set<T>
-
+export class UndoableClearSet<T = any>
+  extends UndoableCallback<Set<T>, Set<T>, typeof Set.prototype.clear> {
   constructor (
     target: Set<T>
   ) {
-    this.target = target
-    this.cache = new Set<T>(target)
+    super(target, target.clear, [])
   }
 
-  redo (): void {
-    this.target.clear()
+  initialize (): void {
+    this._initializedData = new Set<T>(this.target)
   }
 
   undo (): void {
-    this.cache.forEach(value => this.target.add(value))
+    if (this._initializedData != null) {
+      this._initializedData.forEach(value => this.target.add(value))
+    }
   }
 }
 
@@ -80,28 +71,18 @@ export class UndoableClearSet<T = any> implements UndoableAction {
  * @property {T} value - value to be removed
  * @property {boolean} existingItem - cached check for if the item is already in the set
  */
-export class UndoableDeleteSetItem<T = any> implements UndoableAction {
-  readonly target: Set<T>
-  readonly value: T
-  readonly existingItem: boolean
-
+export class UndoableDeleteSetItem<T = any>
+  extends UndoableCallback<any, Set<T>, typeof Set.prototype.delete> {
   constructor (
     target: Set<T>,
     value: T
   ) {
-    this.target = target
-    this.value = value
-    this.existingItem = target.has(value)
-  }
-
-  redo (): void {
-    this.target.delete(this.value)
+    super(target, target.delete, [value])
   }
 
   undo (): void {
-    if (this.existingItem) {
-      this.target.add(this.value)
-    }
+    const [value] = this.values
+    this.target.add(value)
   }
 }
 
@@ -121,27 +102,24 @@ export class UndoableSetHandler<T = any> extends UndoableProxyHandler<Set<T>> {
       {
         add: (target: Set<T>) => {
           return (value: T) => {
-            this.onChange(
+            const result = this.applyChange(
               new UndoableAddSetItem(target, value)
             )
-            const result = target.add(value)
             return new Proxy(result, this)
           }
         },
         clear: (target: Set<T>) => {
           return () => {
-            this.onChange(
+            return this.applyChange(
               new UndoableClearSet(target)
             )
-            target.clear()
           }
         },
         delete: (target: Set<T>) => {
           return (value: T) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableDeleteSetItem(target, value)
             )
-            return target.delete(value)
           }
         }
       }

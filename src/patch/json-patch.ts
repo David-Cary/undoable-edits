@@ -1,9 +1,9 @@
 import {
+  type AnyObject,
   type UndoableAction,
   UndoableActionSequence
 } from '../edits/actions'
 import {
-  type AnyObject,
   type CommonKey,
   UndoableCopyValue,
   UndoableDeleteNestedValue,

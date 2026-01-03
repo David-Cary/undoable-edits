@@ -14,6 +14,13 @@ Undoable actions provide an "undo" and "redo" function, letting you roll back an
 
 Note this makes such actions compatible with the [undo manager](https://www.npmjs.com/package/undo-manager) library.
 
+As of version 1.4.0, such actions also have an "apply" function.  This functions much like redo, but may include a relevant return value for that action.  Actions that need to store information before making changes may also have an initialize function.
+
+This version also provides `UndoableCallback`, `UndoableSetViaFunction` and `DelegatingUndoableAction` as base classes for you own actions.
+ - `UndoableCallback` is an abstract class that takes in the "this" argument, callback, and arguments to be used.  You must provide the initialize and undo functions for any subclasses.
+ - `UndoableSetViaFunction` is a concrete version of the above that reuses the provided callback to undo the changes.  You must provide a function to get the undo callback arguments as the 3rd parameter of the constructor.
+ - `DelegatingUndoableAction` is an abstract class that uses a specific sub-action based on the provided context, effectively acting like an action factory.  You must provide the `createDelegatedAction` for concrete sub-classes.
+
 ### Object Actions
 You can set a property value like so:
 ```

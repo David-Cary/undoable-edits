@@ -1,5 +1,5 @@
-import { type UndoableAction } from './actions';
-import { type UntypedObject, type UndoableProxyHandlerClass, UndoableProxyListener } from './proxies';
+import { type UndoableAction, type UntypedObject } from './actions';
+import { type UndoableProxyHandlerClass, UndoableProxyListener } from './proxies';
 /**
  * Stores a sequence of performed and undone actions.
  * @class

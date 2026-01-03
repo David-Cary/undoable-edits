@@ -58,7 +58,6 @@ describe("UndoableArrayResize", () => {
     )
     test("should expand to target length", () => {
       expand.redo()
-      expect(expand.trimmed.length).toBe(0)
       expect(target).toEqual([1, undefined, undefined, undefined])
     })
   })
@@ -404,9 +403,8 @@ describe("UndoableArrayHandler", () => {
     proxy.splice(1, 2, 4)
     expect(capturedActions).toMatchObject([
       {
-        start: 1,
-        deletions: [2, 3],
-        insertions: [4]
+        values: [1, 2, 4],
+        initializedData: [1, 1, 2, 3]
       }
     ])
   })
@@ -422,8 +420,7 @@ describe("UndoableArrayHandler", () => {
     proxy.copyWithin(2, 0)
     expect(capturedActions).toMatchObject([
       {
-        destination: 2,
-        start: 0
+        values: [2, 0]
       }
     ])
   })
@@ -433,8 +430,7 @@ describe("UndoableArrayHandler", () => {
     proxy.fill(0, 1)
     expect(capturedActions).toMatchObject([
       {
-        value: 0,
-        start: 1
+        values: [0, 1]
       }
     ])
   })

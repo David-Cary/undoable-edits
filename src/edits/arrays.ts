@@ -1,9 +1,11 @@
 import {
+  type ValidKey,
   type UndoableAction,
-  type UndoableActionCallback
+  type UndoableActionCallback,
+  UndoableCallback,
+  type ValueWrapper
 } from './actions'
 import {
-  type ValidKey,
   type MaybeIterable,
   type ProxyFactory,
   ClassedUndoableProxyFactory,
@@ -14,35 +16,49 @@ import {
  * Undoable action for changing an array's length.
  * @class
  * @extends UndoableAction
- * @property {any[]} target - array to be modified
+ * @property {T[]} target - array to be modified
  * @property {number} length - desired length for the target array
  * @property {number} originalLength - cached length of array prior to change
  * @property {any[} trimmed - cached values removed by resizing
  */
-export class UndoableArrayResize implements UndoableAction {
-  readonly target: any[]
+export class UndoableArrayResize<T = any> implements UndoableAction {
+  protected _initialized = false
+  readonly target: T[]
   readonly length: number
-  readonly originalLength: number
-  readonly trimmed: any[]
+  protected _originalLength = 0
+  protected _trimmed: T[] = []
 
   constructor (
-    target: any[],
+    target: T[],
     length: number
   ) {
     this.target = target
     this.length = length
-    this.originalLength = target.length
-    this.trimmed = target.slice(length)
+  }
+
+  initialize (): void {
+    this._originalLength = this.target.length
+    this._trimmed = this.target.slice(this.length)
+    this._initialized = true
+  }
+
+  apply (): number {
+    if (!this._initialized) this.initialize()
+    this.target.length = this.length
+    return this.target.length
   }
 
   redo (): void {
+    if (!this._initialized) this.initialize()
     this.target.length = this.length
   }
 
   undo (): void {
-    this.target.length = this.originalLength
-    for (let i = 0; i < this.trimmed.length; i++) {
-      this.target[this.length + i] = this.trimmed[i]
+    if (this._initialized) {
+      this.target.length = this._originalLength
+      for (let i = 0; i < this._trimmed.length; i++) {
+        this.target[this.length + i] = this._trimmed[i]
+      }
     }
   }
 }
@@ -50,179 +66,133 @@ export class UndoableArrayResize implements UndoableAction {
 /**
  * Undoable action for an array's copyWithin method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {number} destination - position elements should be copied to
- * @property {number} start - starting position elements should be copied from
- * @property {number | undefined} end - position copy should stop at
- * @property {any[]} overwritten - cached values overwritten by copy
+ * @extends UndoableCallback
  */
-export class UndoableCopyWithin implements UndoableAction {
-  readonly target: any[]
-  readonly destination: number
-  readonly start: number
-  readonly end?: number
-  readonly overwritten: any[]
-
+export class UndoableCopyWithin<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.copyWithin> {
   constructor (
-    target: any[],
-    destination: number,
-    start: number,
-    end?: number
+    target: T[],
+    ...params: Parameters<typeof Array.prototype.copyWithin>
   ) {
-    this.destination = destination
-    this.target = target
-    this.start = start
+    super(target, target.copyWithin, params)
+  }
+
+  initialize (): void {
+    const [destination, start, end] = this.values
     let destinationEnd: number | undefined
     if (end != null) {
       destinationEnd = end >= 0
         ? destination + end - start
         : end
     }
-    this.overwritten = target.slice(destination, destinationEnd)
-  }
-
-  redo (): void {
-    this.target.copyWithin(
-      this.destination,
-      this.start,
-      this.end
-    )
+    this._initializedData = this.target.slice(destination, destinationEnd)
   }
 
   undo (): void {
-    this.target.splice(
-      this.destination,
-      this.overwritten.length,
-      ...this.overwritten
-    )
+    const [destination] = this.values
+    if (this._initializedData != null) {
+      this.target.splice(
+        destination,
+        this._initializedData.length,
+        ...this._initializedData
+      )
+    }
   }
 }
 
 /**
  * Undoable action for an array's fill method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - value to fill the target positions with
- * @property {number} start - starting position of the fill
- * @property {number | undefined} end - position the fill stops at
- * @property {any[]} overwritten - cached values overwritten by the fill
+ * @extends UndoableCallback
  */
-export class UndoableFill implements UndoableAction {
-  readonly target: any[]
-  readonly value: any
-  readonly start: number
-  readonly end?: number
-  readonly overwritten: any[]
-
+export class UndoableFill<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.fill> {
   constructor (
-    target: any[],
-    value: any,
-    start: number,
-    end?: number
+    target: T[],
+    ...params: Parameters<typeof Array.prototype.fill>
   ) {
-    this.target = target
-    this.value = value
-    this.start = start
-    this.end = end
-    this.overwritten = target.slice(start, end)
+    super(target, target.fill, params)
   }
 
-  redo (): void {
-    this.target.fill(
-      this.value,
-      this.start,
-      this.end
-    )
+  initialize (): void {
+    const [, start, end] = this.values
+    this._initializedData = this.target.slice(start, end)
   }
 
   undo (): void {
-    this.target.splice(
-      this.start,
-      this.overwritten.length,
-      ...this.overwritten
-    )
+    const [, start] = this.values
+    if (this._initializedData != null) {
+      this.target.splice(
+        start ?? 0,
+        this._initializedData.length,
+        ...this._initializedData
+      )
+    }
   }
 }
 
 /**
  * Undoable action for an array's pop method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - cached value to be removed
+ * @extends UndoableCallback
  */
-export class UndoablePopItem implements UndoableAction {
-  readonly target: any[]
-  readonly value: any
-
+export class UndoablePopItem<T = any> extends UndoableCallback<ValueWrapper, T[], typeof Array.prototype.pop> {
   constructor (
-    target: any[]
+    target: T[]
   ) {
-    this.target = target
-    this.value = target[target.length - 1]
+    super(target, target.pop, [])
   }
 
-  redo (): void {
-    this.target.pop()
+  initialize (): void {
+    this._initializedData = { value: this.target[this.target.length - 1] }
   }
 
   undo (): void {
-    this.target.push(this.value)
+    if (this._initializedData != null) {
+      this.target.push(this._initializedData.value)
+    }
   }
 }
 
 /**
  * Undoable action for an array's push method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any[]} values - values to be added to the array
+ * @extends UndoableCallback
  */
-export class UndoablePushItems implements UndoableAction {
-  readonly target: any[]
-  readonly values: any[]
-
+export class UndoablePushItems<T = any> extends UndoableCallback<any, T[], typeof Array.prototype.push> {
   constructor (
-    target: any[],
-    ...values: any[]
+    target: T[],
+    ...values: T[]
   ) {
-    this.target = target
-    this.values = values
-  }
-
-  redo (): void {
-    this.target.push(...this.values)
+    super(target, target.push, values)
   }
 
   undo (): void {
-    const index = this.target.length - this.values.length
-    this.target.splice(index)
+    if (this._initializedData != null) {
+      const index = this.target.length - this.values.length
+      this.target.splice(index)
+    }
   }
 }
 
 /**
  * Undoable action for an array's reverse method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
+ * @extends UndoableCallback
  */
-export class UndoableReverse implements UndoableAction {
-  readonly target: any[]
-
+export class UndoableReverse<T = any> extends UndoableCallback<boolean, T[], typeof Array.prototype.reverse> {
   constructor (
     target: any[]
   ) {
-    this.target = target
+    super(target, target.reverse, [])
   }
 
-  redo (): void {
-    this.target.reverse()
+  initialize (): void {
+    this._initializedData = true
   }
 
   undo (): void {
-    this.target.reverse()
+    if (this._initializedData === true) {
+      this.target.reverse()
+    }
   }
 }
 
@@ -236,138 +206,129 @@ export class UndoableReverse implements UndoableAction {
  * @property {any} nextValue - value to be assigned
  * @property {number} priorLength - cached length of array before assignment
  */
-export class UndoableSetItemAt implements UndoableAction {
-  readonly target: any[]
+export class UndoableSetItemAt<T = any> implements UndoableAction {
+  readonly target: T []
   readonly index: number
-  readonly previousValue: any
-  readonly nextValue: any
-  readonly priorLength: number
+  protected _initializedData?: { value: T, length: number }
+  readonly nextValue: T
+  protected _priorLength = 0
 
   constructor (
-    target: any[],
+    target: T[],
     index: number,
     nextValue: any
   ) {
     this.target = target
     this.index = index
-    this.previousValue = target[index]
     this.nextValue = nextValue
-    this.priorLength = target.length
+  }
+
+  initialize (): void {
+    this._initializedData = {
+      value: this.target[this.index],
+      length: this.target.length
+    }
+  }
+
+  apply (): boolean {
+    if (this._initializedData == null) this.initialize()
+    this.target[this.index] = this.nextValue
+    return true
   }
 
   redo (): void {
+    if (this._initializedData == null) this.initialize()
     this.target[this.index] = this.nextValue
   }
 
   undo (): void {
-    this.target[this.index] = this.previousValue
-    this.target.length = this.priorLength
+    if (this._initializedData != null) {
+      this.target[this.index] = this._initializedData.value
+      this.target.length = this._initializedData.length
+    }
   }
 }
 
 /**
  * Undoable action for an array's shift method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any} value - cached value to be removed
+ * @extends UndoableCallback
  */
-export class UndoableShiftItem implements UndoableAction {
-  readonly target: any[]
-  readonly value: any
-
+export class UndoableShiftItem<T = any> extends UndoableCallback<ValueWrapper, T[], typeof Array.prototype.shift> {
   constructor (
-    target: any[]
+    target: T[]
   ) {
-    this.target = target
-    this.value = target[0]
+    super(target, target.shift, [])
   }
 
-  redo (): void {
-    this.target.shift()
+  initialize (): void {
+    this._initializedData = { value: this.target[0] }
   }
 
   undo (): void {
-    this.target.unshift(this.value)
+    if (this._initializedData != null) {
+      this.target.unshift(this._initializedData.value)
+    }
   }
 }
 
 /**
  * Undoable action for an array's sort method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {((a: any, b: any) => number) | undefined} compare - comparison function to be applied to sort
- * @property {any[]} unsorted - order of the array's contents before the sort
+ * @extends UndoableCallback
  */
-export class UndoableSort implements UndoableAction {
-  readonly target: any[]
-  readonly compare?: (a: any, b: any) => number
-  readonly unsorted: any[]
-
+export class UndoableSort<T = any> extends UndoableCallback<T[], T[], typeof Array.prototype.sort> {
   constructor (
-    target: any[],
-    compare?: (a: any, b: any) => number
+    target: T[],
+    ...params: Parameters<typeof Array.prototype.sort>
   ) {
-    this.target = target
-    this.compare = compare
-    this.unsorted = target.slice()
+    super(target, target.sort, params)
   }
 
-  redo (): void {
-    this.target.sort(this.compare)
+  initialize (): void {
+    this._initializedData = this.target.slice()
   }
 
   undo (): void {
-    this.target.splice(
-      0,
-      this.unsorted.length,
-      ...this.unsorted
-    )
+    if (this._initializedData != null) {
+      this.target.splice(
+        0,
+        this._initializedData.length,
+        ...this._initializedData
+      )
+    }
   }
 }
 
 /**
  * Undoable action for an array's splice method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {number} value - position the splice starts at
- * @property {any[]} deletions - values removed by the splice
- * @property {any[]} insertions - values added by the splice
+ * @extends UndoableCallback
  */
-export class UndoableSplice implements UndoableAction {
-  readonly target: any[]
-  readonly start: number
-  readonly deletions: any[]
-  readonly insertions: any[]
-
+export class UndoableSplice<T = any>
+  extends UndoableCallback<Parameters<typeof Array.prototype.splice>, T[], typeof Array.prototype.splice> {
   constructor (
-    target: any[],
-    start: number,
-    deleteCount: number = 0,
-    ...items: any[]
+    target: T[],
+    ...params: Parameters<typeof Array.prototype.splice>
   ) {
-    this.target = target
-    this.start = start
-    this.deletions = target.slice(start, start + deleteCount)
-    this.insertions = items
+    super(target, target.splice, params)
   }
 
-  redo (): void {
-    this.target.splice(
-      this.start,
-      this.deletions.length,
-      ...this.insertions
-    )
+  initialize (): void {
+    const [start, deleteCount, ...items] = this.values
+    const end = start + deleteCount
+    const deletions = this.target.slice(start, end)
+    this._initializedData = [
+      start,
+      items.length,
+      ...deletions
+    ]
   }
 
   undo (): void {
-    this.target.splice(
-      this.start,
-      this.insertions.length,
-      ...this.deletions
-    )
+    if (this._initializedData != null) {
+      this.target.splice.apply(this.target, this._initializedData)
+    }
   }
 }
 
@@ -394,6 +355,7 @@ export interface ArrayElementReference<T = any> {
 export class UndoableTransferItem<T = any> implements UndoableAction {
   readonly from: ArrayElementReference<T>
   readonly to: ArrayElementReference<T>
+  protected _initializedData: any[] = []
 
   constructor (
     from: ArrayElementReference<T>,
@@ -403,12 +365,33 @@ export class UndoableTransferItem<T = any> implements UndoableAction {
     this.to = to
   }
 
+  apply (): ArrayElementReference<T> | undefined {
+    if (this._initializedData.length < 1) this.initialize()
+    if (this._initializedData.length > 0) {
+      this.transferItem(this.from, this.to)
+      return { ...this.to }
+    }
+  }
+
+  initialize (): void {
+    this._initializedData = []
+    const length = this.from.source.length
+    if (this.from.index >= length || this.from.index < -length) return
+    const targetValue = this.from.source.at(this.from.index)
+    this._initializedData.push(targetValue)
+  }
+
   redo (): void {
-    this.transferItem(this.from, this.to)
+    if (this._initializedData.length < 1) this.initialize()
+    if (this._initializedData.length > 0) {
+      this.transferItem(this.from, this.to)
+    }
   }
 
   undo (): void {
-    this.transferItem(this.to, this.from)
+    if (this._initializedData.length > 0) {
+      this.transferItem(this.to, this.from)
+    }
   }
 
   /**
@@ -432,28 +415,20 @@ export class UndoableTransferItem<T = any> implements UndoableAction {
 /**
  * Undoable action for an array's unshift method.
  * @class
- * @extends UndoableAction
- * @property {any[]} target - array to be modified
- * @property {any[]} values - values to be added to the array
+ * @extends UndoableCallback
  */
-export class UndoableUnshiftItems implements UndoableAction {
-  readonly target: any[]
-  readonly values: any[]
-
+export class UndoableUnshiftItems<T = any> extends UndoableCallback<any, T[], typeof Array.prototype.unshift> {
   constructor (
-    target: any[],
+    target: T[],
     ...values: any[]
   ) {
-    this.target = target
-    this.values = values
-  }
-
-  redo (): void {
-    this.target.unshift(...this.values)
+    super(target, target.unshift, values)
   }
 
   undo (): void {
-    this.target.splice(0, this.values.length)
+    if (this._initializedData != null) {
+      this.target.splice(0, this.values.length)
+    }
   }
 }
 
@@ -479,72 +454,64 @@ export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
         },
         copyWithin: (target: T[]) => {
           return (destination: number, start: number, end?: number) => {
-            this.onChange(
+            const value = this.applyChange(
               new UndoableCopyWithin(target, destination, start, end)
             )
-            const value = target.copyWithin(destination, start, end)
             return new Proxy(value, this)
           }
         },
         fill: (target: T[]) => {
           return (value: T, start: number, end?: number) => {
-            this.onChange(
+            const result = this.applyChange(
               new UndoableFill(target, value, start, end)
             )
-            const result = target.fill(value, start, end)
             return new Proxy(result, this)
           }
         },
         pop: (target: T[]) => {
           return (...items: T[]) => {
-            this.onChange(
+            const item = this.applyChange(
               new UndoablePopItem(target)
             )
-            const item = target.pop()
             return this.getProxiedValue(item)
           }
         },
         push: (target: T[]) => {
           return (...items: T[]) => {
-            this.onChange(
+            return this.applyChange(
               new UndoablePushItems(target, ...items)
             )
-            return target.push(...items)
           }
         },
         reverse: (target: T[]) => {
           return () => {
-            this.onChange(
+            const value = this.applyChange(
               new UndoableReverse(target)
             )
-            const value = target.reverse()
             return new Proxy(value, this)
           }
         },
         shift: (target: T[]) => {
           return (...items: T[]) => {
-            this.onChange(
+            const item = this.applyChange(
               new UndoableShiftItem(target)
             )
-            const item = target.shift()
             return this.getProxiedValue(item)
           }
         },
         splice: (target: T[]) => {
           return (start: number, deleteCount: number, ...items: T[]) => {
-            this.onChange(
+            const value = this.applyChange(
               new UndoableSplice(target, start, deleteCount, ...items)
             )
-            const value = target.splice(start, deleteCount, ...items)
             return new Proxy(value, this)
           }
         },
         unshift: (target: T[]) => {
           return (...items: T[]) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableUnshiftItems(target, ...items)
             )
-            return target.unshift(...items)
           }
         }
       }
@@ -557,17 +524,19 @@ export class UndoableArrayHandler<T = any> extends UndoableProxyHandler<T[]> {
     value: any
   ): boolean {
     if (property === 'length') {
-      return this.applyChange(
+      this.applyChange(
         new UndoableArrayResize(target, value)
       )
+      return true
     }
     const index = Number(property)
     if (isNaN(index)) {
       return Reflect.set(target, property, value)
     }
-    return this.applyChange(
+    this.applyChange(
       new UndoableSetItemAt(target, index, value)
     )
+    return true
   }
 }
 

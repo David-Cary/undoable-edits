@@ -1,5 +1,4 @@
-import { type UndoableAction, type UndoableActionCallback, UndoableActionSequence } from './actions';
-export type ValidKey = string | number | symbol;
+import { type UndoableAction, type UndoableActionCallback, UndoableActionSequence, type UntypedObject, type ValidKey } from './actions';
 export declare const PROXY_HANDLER: unique symbol;
 export declare const PROXY_TARGET: unique symbol;
 export declare const APPLY_UNDOABLE_ACTION: unique symbol;
@@ -59,7 +58,7 @@ export declare class UndoableProxyHandler<T extends object = object> implements 
      * @param {UndoableAction} change - action to be executed
      * @returns {boolean}
      */
-    applyChange(change: UndoableAction): boolean;
+    applyChange(change: UndoableAction): any;
     get(target: T, property: ValidKey): any;
     /**
      * Tries to wrap the value in a proxy.
@@ -71,11 +70,6 @@ export declare class UndoableProxyHandler<T extends object = object> implements 
     getProxiedValue(value: any): any;
     has(target: T, property: ValidKey): boolean;
 }
-/**
- * Typing for plain old javascript object.
- * @type
- */
-export type UntypedObject = Record<ValidKey, any>;
 /**
  * Covers references to classes that use a callback list and proxy factory in their constructor.
  * @type
@@ -165,6 +159,8 @@ export declare class UndoableTransformation<T extends object = object> extends U
     readonly proxy: UndoableProxy<T>;
     readonly transform: (value: T) => void;
     constructor(target: T, transform: (value: T) => void, handlerClasses?: Map<UntypedObject, UndoableProxyHandlerClass>);
+    initialize(): void;
+    apply(): boolean;
     redo(): void;
     /**
      * Applies a callback to the target value, triggering the target's action callbacks

@@ -40,7 +40,6 @@ describe("UndoableSetProperty", () => {
         'x',
         2
       )
-      expect(update.priorProperty).toBe(true)
       update.redo()
       expect(target.x).toBe(2)
     })
@@ -164,7 +163,6 @@ describe("UndoableRecordHandler", () => {
     expect(capturedActions).toMatchObject([
       {
         key: 'x',
-        previousValue: undefined,
         nextValue: 2
       }
     ])
@@ -177,7 +175,6 @@ describe("UndoableRecordHandler", () => {
     expect(capturedActions).toMatchObject([
       {
         key: 'x',
-        previousValue: 2
       }
     ])
   })
@@ -257,7 +254,6 @@ describe("UndoableRecordHandler", () => {
     expect(capturedActions).toMatchObject([
       {
         index: 0,
-        previousValue: 1,
         nextValue: 0
       }
     ])
@@ -290,7 +286,7 @@ describe("UndoableRecordHandler", () => {
     expect(proxy.values.has(1)).toBe(true)
     expect(capturedActions).toMatchObject([
       {
-        value: 1
+        values: [1]
       }
     ])
   })
@@ -306,8 +302,7 @@ describe("UndoableRecordHandler", () => {
     expect(proxy.values.get('x')).toBe(1)
     expect(capturedActions).toMatchObject([
       {
-        key: 'x',
-        nextValue: 1
+        values: ['x', 1]
       }
     ])
   })

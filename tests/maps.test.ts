@@ -18,8 +18,7 @@ describe("UndoableMapHandler", () => {
     expect(proxy.get('z')).toBe(3)
     expect(capturedActions).toMatchObject([
       {
-        key: 'z',
-        nextValue: 3
+        values: ['z', 3]
       }
     ])
     capturedActions[0]?.undo()
@@ -31,7 +30,7 @@ describe("UndoableMapHandler", () => {
     expect(proxy.has('x')).toBe(false)
     expect(capturedActions).toMatchObject([
       {
-        key: 'x'
+        values: ['x']
       }
     ])
     capturedActions[0]?.undo()
@@ -43,7 +42,7 @@ describe("UndoableMapHandler", () => {
     expect(proxy.size).toBe(0)
     expect(capturedActions).toMatchObject([
       {
-        target: nums
+        values: []
       }
     ])
     capturedActions[0]?.undo()

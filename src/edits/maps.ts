@@ -1,6 +1,6 @@
 import {
-  type UndoableAction,
-  type UndoableActionCallback
+  type UndoableActionCallback,
+  UndoableCallback
 } from './actions'
 import {
   UndoableProxyHandler,
@@ -13,27 +13,24 @@ import {
  * UndoableAction for clearing a map.
  * @template K, V
  * @class
- * @extends UndoableAction
- * @property {Map<K, V>} target - map to be modified
- * @property {Set<T>} cache - values prior to clear
+ * @extends UndoableCallback
  */
-export class UndoableClearMap<K = any, V = any> implements UndoableAction {
-  readonly target: Map<K, V>
-  readonly cache: Map<K, V>
-
+export class UndoableClearMap<K = any, V = any>
+  extends UndoableCallback<Map<K, V>, Map<K, V>, typeof Map.prototype.clear> {
   constructor (
     target: Map<K, V>
   ) {
-    this.target = target
-    this.cache = new Map<K, V>(target)
+    super(target, target.clear, [])
   }
 
-  redo (): void {
-    this.target.clear()
+  initialize (): void {
+    this._initializedData = new Map<K, V>(this.target)
   }
 
   undo (): void {
-    this.cache.forEach((value, key) => this.target.set(key, value))
+    if (this._initializedData != null) {
+      this._initializedData.forEach((value, key) => this.target.set(key, value))
+    }
   }
 }
 
@@ -41,34 +38,31 @@ export class UndoableClearMap<K = any, V = any> implements UndoableAction {
  * UndoableAction for removing an item to a map.
  * @template T
  * @class
- * @extends UndoableAction
+ * @extends UndoableCallback
  * @property {Map<K, V>} target - map to be modified
  * @property {K} key - key of entry to be removed
- * @property {boolean} existingItem - cached check for if the item is already in the map
  */
-export class UndoableDeleteMapItem<K = any, V = any> implements UndoableAction {
-  readonly target: Map<K, V>
-  readonly key: K
-  readonly previousValue?: V
-  readonly existingItem: boolean
-
+export class UndoableDeleteMapItem<K = any, V = any>
+  extends UndoableCallback<Map<K, V>, Map<K, V>, typeof Map.prototype.delete> {
   constructor (
     target: Map<K, V>,
     key: K
   ) {
-    this.target = target
-    this.key = key
-    this.previousValue = target.get(key)
-    this.existingItem = target.has(key)
+    super(target, target.delete, [key])
   }
 
-  redo (): void {
-    this.target.delete(this.key)
+  initialize (): void {
+    this._initializedData = new Map<K, V>()
+    const [key] = this.values
+    const value = this.target.get(key)
+    if (value !== undefined) this._initializedData.set(key, value)
   }
 
   undo (): void {
-    if (this.existingItem && this.previousValue !== undefined) {
-      this.target.set(this.key, this.previousValue)
+    if (this._initializedData != null) {
+      const [key] = this.values
+      const value = this._initializedData.get(key)
+      if (value !== undefined) this.target.set(key, value)
     }
   }
 }
@@ -77,40 +71,33 @@ export class UndoableDeleteMapItem<K = any, V = any> implements UndoableAction {
  * UndoableAction for setting a map value.
  * @template T
  * @class
- * @extends UndoableAction
- * @property {Map<K, V>} target - map to be modified
- * @property {K} key - key of target entry
- * @property {V} value - value to be assigned
- * @property {boolean} existingItem - cached check for if the item is already in the map
+ * @extends UndoableCallback
  */
-export class UndoableSetMapValue<K = any, V = any> implements UndoableAction {
-  readonly target: Map<K, V>
-  readonly key: K
-  readonly previousValue?: V
-  readonly nextValue: V
-  readonly existingItem: boolean
-
+export class UndoableSetMapValue<K = any, V = any>
+  extends UndoableCallback<Map<K, V>, Map<K, V>, typeof Map.prototype.set> {
   constructor (
     target: Map<K, V>,
-    key: K,
-    value: V
+    ...params: Parameters<typeof Map.prototype.set>
   ) {
-    this.target = target
-    this.key = key
-    this.nextValue = value
-    this.previousValue = target.get(key)
-    this.existingItem = target.has(key)
+    super(target, target.set, params)
   }
 
-  redo (): void {
-    this.target.set(this.key, this.nextValue)
+  initialize (): void {
+    this._initializedData = new Map<K, V>()
+    const [key] = this.values
+    const value = this.target.get(key)
+    if (value !== undefined) this._initializedData.set(key, value)
   }
 
   undo (): void {
-    if (this.existingItem && this.previousValue !== undefined) {
-      this.target.set(this.key, this.previousValue)
-    } else {
-      this.target.delete(this.key)
+    if (this._initializedData != null) {
+      const [key] = this.values
+      const value = this._initializedData.get(key)
+      if (value !== undefined) {
+        this.target.set(key, value)
+      } else {
+        this.target.delete(key)
+      }
     }
   }
 }
@@ -131,26 +118,23 @@ export class UndoableMapHandler<K = any, V = any> extends UndoableProxyHandler<M
       {
         clear: (target: Map<K, V>) => {
           return () => {
-            this.onChange(
+            return this.applyChange(
               new UndoableClearMap(target)
             )
-            target.clear()
           }
         },
         delete: (target: Map<K, V>) => {
           return (key: K) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableDeleteMapItem(target, key)
             )
-            return target.delete(key)
           }
         },
         set: (target: Map<K, V>) => {
           return (key: K, value: V) => {
-            this.onChange(
+            return this.applyChange(
               new UndoableSetMapValue(target, key, value)
             )
-            return target.set(key, value)
           }
         }
       }

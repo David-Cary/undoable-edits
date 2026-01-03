@@ -15,7 +15,7 @@ describe("UndoableSetHandler", () => {
     expect(proxy.has(3)).toBe(true)
     expect(capturedActions).toMatchObject([
       {
-        value: 3
+        values: [3]
       }
     ])
     capturedActions[0]?.undo()
@@ -27,7 +27,7 @@ describe("UndoableSetHandler", () => {
     expect(proxy.has(2)).toBe(false)
     expect(capturedActions).toMatchObject([
       {
-        value: 2
+        values: [2]
       }
     ])
     capturedActions[0]?.undo()
@@ -39,7 +39,7 @@ describe("UndoableSetHandler", () => {
     expect(proxy.size).toBe(0)
     expect(capturedActions).toMatchObject([
       {
-        target: nums
+        values: []
       }
     ])
     capturedActions[0]?.undo()

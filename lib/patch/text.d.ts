@@ -1,5 +1,5 @@
-import { type AnyObject, UndoableSetValue } from '../edits/deep';
-import { type ValidKey } from '../edits/proxies';
+import { UndoableSetValue } from '../edits/deep';
+import { type AnyObject, type ValidKey } from '../edits/actions';
 export type TextPatchStep = [number, string];
 export type TextPatch = Array<number | TextPatchStep>;
 /**
